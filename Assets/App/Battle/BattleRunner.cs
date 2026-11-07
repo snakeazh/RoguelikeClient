@@ -233,8 +233,19 @@ namespace App.Battle
                 return move;
             }
 
+            // 摇杆区域要按“游戏画面”算，而不是按整个窗口算：
+            // 宽屏时相机会被裁成 9:16 的中间一列（camera.rect），窗口左右是黑边，
+            // 如果还拿 Screen.width/2 当分界线，画面中间按下去会落在“右半屏”里，
+            // 表现就是宽屏下按了没反应、窄屏正常。
+            var camera = Camera.main;
+            var view = camera != null && camera.pixelWidth > 0 && camera.pixelHeight > 0
+                ? camera.pixelRect
+                : new Rect(0f, 0f, Screen.width, Screen.height);
+
             var pointer = BattleInput.PointerPosition;
-            if (BattleInput.PointerDown && pointer.x < Screen.width * 0.5f)
+            var insideView = view.width >= 1f && view.height >= 1f && view.Contains(pointer);
+
+            if (BattleInput.PointerDown && insideView && pointer.x < view.xMin + view.width * 0.5f)
             {
                 _joystickOrigin = pointer;
                 _joystickActive = true;
@@ -242,9 +253,12 @@ namespace App.Battle
 
             if (BattleInput.PointerHeld && _joystickActive)
             {
-                var radius = Mathf.Max(60f, Screen.height * 0.11f);
-                var delta = (pointer - _joystickOrigin) / radius;
-                move = Vector2.ClampMagnitude(delta, 1f);
+                if (insideView)
+                {
+                    var radius = Mathf.Max(60f, view.height * 0.11f);
+                    var delta = (pointer - _joystickOrigin) / radius;
+                    move = Vector2.ClampMagnitude(delta, 1f);
+                }
             }
             else
             {
