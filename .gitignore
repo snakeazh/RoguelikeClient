@@ -1,0 +1,43 @@
+# ---------- Unity 生成目录（不要进版本库） ----------
+/Library/
+/Temp/
+/Obj/
+/Logs/
+/UserSettings/
+/MemoryCaptures/
+/Recordings/
+
+# ---------- 构建产物 ----------
+/Builds/
+/Bundles/
+/Assets/StreamingAssets/Bundles/
+*.apk
+*.aab
+*.unitypackage
+
+# ---------- IDE / 工程文件（Unity 自动生成） ----------
+.vs/
+.idea/
+.vscode/
+*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# ---------- 系统垃圾 ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- 其他 ----------
+*.tmp
+*.bak
+*.orig

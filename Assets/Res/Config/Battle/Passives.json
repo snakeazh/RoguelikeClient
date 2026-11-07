@@ -1,0 +1,12 @@
+[
+  { "Id": 1,  "Name": "力量耳环", "Description": "伤害 +10% / 20% / 30%",            "Kind": 0, "MaxLevel": 3, "Values": [0.10, 0.20, 0.30] },
+  { "Id": 2,  "Name": "急速药丸", "Description": "武器冷却 -8% / 15% / 22%",         "Kind": 1, "MaxLevel": 3, "Values": [0.08, 0.15, 0.22] },
+  { "Id": 3,  "Name": "备用箭袋", "Description": "投射物数量 +1 / +1 / +2",          "Kind": 2, "MaxLevel": 3, "Values": [1.0, 1.0, 2.0] },
+  { "Id": 4,  "Name": "大弹弓",   "Description": "攻击范围 +12% / 24% / 36%",        "Kind": 3, "MaxLevel": 3, "Values": [0.12, 0.24, 0.36] },
+  { "Id": 5,  "Name": "轻灵之靴", "Description": "移动速度 +8% / 16% / 24%",         "Kind": 4, "MaxLevel": 3, "Values": [0.08, 0.16, 0.24] },
+  { "Id": 6,  "Name": "高级点心", "Description": "最大生命 +15% / 30% / 45%",        "Kind": 5, "MaxLevel": 3, "Values": [0.15, 0.30, 0.45] },
+  { "Id": 7,  "Name": "小圆盾",   "Description": "护甲 +2 / +4 / +6",                "Kind": 6, "MaxLevel": 3, "Values": [2.0, 4.0, 6.0] },
+  { "Id": 8,  "Name": "瞄准镜",   "Description": "暴击率 +8% / 16% / 24%",           "Kind": 7, "MaxLevel": 3, "Values": [0.08, 0.16, 0.24] },
+  { "Id": 9,  "Name": "磁力腰带", "Description": "拾取范围 +35% / 70% / 105%",       "Kind": 8, "MaxLevel": 3, "Values": [0.35, 0.70, 1.05] },
+  { "Id": 10, "Name": "幸运草",   "Description": "掉落运气 +10% / 20% / 30%",        "Kind": 9, "MaxLevel": 3, "Values": [0.10, 0.20, 0.30] }
+]

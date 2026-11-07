@@ -1,0 +1,25 @@
+﻿# Unity 资源以文本形式存盘，统一 LF，避免换行反复变动
+* text=auto eol=lf
+
+*.cs text diff=csharp
+*.json text
+*.md text
+*.asset text
+*.prefab text
+*.unity text
+*.mat text
+*.meta text
+*.asmdef text
+*.txt text
+
+*.png binary
+*.jpg binary
+*.psd binary
+*.wav binary
+*.mp3 binary
+*.ogg binary
+*.otf binary
+*.ttf binary
+*.fbx binary
+*.dll binary
+*.exe binary

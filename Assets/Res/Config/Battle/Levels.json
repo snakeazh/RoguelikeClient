@@ -1,0 +1,21 @@
+[
+  { "Id": 1,  "ExpToNext": 5 },
+  { "Id": 2,  "ExpToNext": 8 },
+  { "Id": 3,  "ExpToNext": 12 },
+  { "Id": 4,  "ExpToNext": 17 },
+  { "Id": 5,  "ExpToNext": 24 },
+  { "Id": 6,  "ExpToNext": 33 },
+  { "Id": 7,  "ExpToNext": 45 },
+  { "Id": 8,  "ExpToNext": 60 },
+  { "Id": 9,  "ExpToNext": 78 },
+  { "Id": 10, "ExpToNext": 100 },
+  { "Id": 11, "ExpToNext": 128 },
+  { "Id": 12, "ExpToNext": 163 },
+  { "Id": 13, "ExpToNext": 205 },
+  { "Id": 14, "ExpToNext": 255 },
+  { "Id": 15, "ExpToNext": 315 },
+  { "Id": 16, "ExpToNext": 385 },
+  { "Id": 17, "ExpToNext": 465 },
+  { "Id": 18, "ExpToNext": 560 },
+  { "Id": 19, "ExpToNext": 670 }
+]

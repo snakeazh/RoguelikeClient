@@ -1,0 +1,17 @@
+[
+  { "Id": 1,  "Time": 0,   "Kind": 0, "EnemyId": 1,   "SpawnCount": 6,  "Interval": 2.2, "Duration": 30, "Radius": 0,   "Affix": 0 },
+  { "Id": 2,  "Time": 30,  "Kind": 0, "EnemyId": 1,   "SpawnCount": 4,  "Interval": 2.1, "Duration": 60, "Radius": 0,   "Affix": 0 },
+  { "Id": 3,  "Time": 60,  "Kind": 0, "EnemyId": 1,   "SpawnCount": 6,  "Interval": 1.9, "Duration": 90, "Radius": 0,   "Affix": 0 },
+  { "Id": 4,  "Time": 90,  "Kind": 1, "EnemyId": 1,   "SpawnCount": 1,  "Interval": 0.0, "Duration": 0,  "Radius": 0,   "Affix": 2 },
+  { "Id": 5,  "Time": 100, "Kind": 0, "EnemyId": 4,   "SpawnCount": 4,  "Interval": 3.0, "Duration": 60, "Radius": 0,   "Affix": 0 },
+  { "Id": 6,  "Time": 120, "Kind": 0, "EnemyId": 5,   "SpawnCount": 4,  "Interval": 3.5, "Duration": 60, "Radius": 0,   "Affix": 0 },
+  { "Id": 7,  "Time": 130, "Kind": 0, "EnemyId": 6,   "SpawnCount": 4,  "Interval": 3.5, "Duration": 60, "Radius": 0,   "Affix": 0 },
+  { "Id": 8,  "Time": 150, "Kind": 2, "EnemyId": 1,   "SpawnCount": 36, "Interval": 0.0, "Duration": 0,  "Radius": 5.5, "Affix": 0 },
+  { "Id": 9,  "Time": 180, "Kind": 4, "EnemyId": 101, "SpawnCount": 1,  "Interval": 0.0, "Duration": 0,  "Radius": 0,   "Affix": 0 },
+  { "Id": 10, "Time": 182, "Kind": 0, "EnemyId": 2,   "SpawnCount": 6,  "Interval": 2.4, "Duration": 40, "Radius": 0,   "Affix": 0 },
+  { "Id": 11, "Time": 210, "Kind": 0, "EnemyId": 4,   "SpawnCount": 4,  "Interval": 2.6, "Duration": 30, "Radius": 0,   "Affix": 0 },
+  { "Id": 12, "Time": 225, "Kind": 3, "EnemyId": 1,   "SpawnCount": 12, "Interval": 1.2, "Duration": 12, "Radius": 0,   "Affix": 0 },
+  { "Id": 13, "Time": 240, "Kind": 1, "EnemyId": 3,   "SpawnCount": 2,  "Interval": 0.0, "Duration": 0,  "Radius": 0,   "Affix": 5 },
+  { "Id": 14, "Time": 250, "Kind": 4, "EnemyId": 102, "SpawnCount": 1,  "Interval": 0.0, "Duration": 0,  "Radius": 0,   "Affix": 0 },
+  { "Id": 15, "Time": 268, "Kind": 4, "EnemyId": 100, "SpawnCount": 1,  "Interval": 0.0, "Duration": 0,  "Radius": 0,   "Affix": 0 }
+]

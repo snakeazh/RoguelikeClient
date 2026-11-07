@@ -1,0 +1,115 @@
+[
+  {
+    "Id": 1, "Name": "长弓", "Description": "自动射向最近的敌人，穿透 1 个目标。",
+    "Kind": 0, "MaxLevel": 5, "Damage": 10, "Cooldown": 0.75, "Projectiles": 1, "Range": 3.8,
+    "Area": 1.0, "Speed": 13, "Pierce": 1, "Sprite": "proj_arrow", "ProjectileRadius": 0.16, "SplashRadius": 0, "Duration": 1.4,
+    "SlowFactor": 0.7, "DamagePerLevel": 0.28, "CooldownPerLevel": 0.06, "CountPerLevel": 0, "AreaPerLevel": 0.12,
+    "PassiveId": 3, "EvolvedId": 101
+  },
+  {
+    "Id": 2, "Name": "回旋刃", "Description": "绕着身周旋转的刀刃，持续切割靠近的敌人。",
+    "Kind": 1, "MaxLevel": 5, "Damage": 7, "Cooldown": 0.35, "Projectiles": 2, "Range": 2.0,
+    "Area": 0.34, "Speed": 2.4, "Pierce": 0, "Sprite": "blade", "ProjectileRadius": 0.16, "SplashRadius": 0, "Duration": 1.5,
+    "SlowFactor": 0.7, "DamagePerLevel": 0.22, "CooldownPerLevel": 0.0, "CountPerLevel": 1, "AreaPerLevel": 0.12,
+    "PassiveId": 4, "EvolvedId": 102
+  },
+  {
+    "Id": 3, "Name": "大剑", "Description": "向前方挥出沉重的一击，命中范围内的所有敌人。",
+    "Kind": 4, "MaxLevel": 5, "Damage": 22, "Cooldown": 1.35, "Projectiles": 1, "Range": 2.2,
+    "Area": 2.2, "Speed": 0, "Pierce": 0, "Sprite": "proj_slash", "ProjectileRadius": 0.2, "SplashRadius": 0, "Duration": 0.18,
+    "SlowFactor": 0.7, "DamagePerLevel": 0.3, "CooldownPerLevel": 0.07, "CountPerLevel": 0, "AreaPerLevel": 0.14,
+    "PassiveId": 1, "EvolvedId": 103
+  },
+  {
+    "Id": 4, "Name": "魔法飞弹", "Description": "追踪最近的敌人，命中后小范围爆炸。",
+    "Kind": 2, "MaxLevel": 5, "Damage": 12, "Cooldown": 1.4, "Projectiles": 1, "Range": 4.2,
+    "Area": 1.0, "Speed": 7.5, "Pierce": 0, "Sprite": "proj_magic", "ProjectileRadius": 0.22, "SplashRadius": 0.9, "Duration": 2.0,
+    "SlowFactor": 0.7, "DamagePerLevel": 0.28, "CooldownPerLevel": 0.06, "CountPerLevel": 1, "AreaPerLevel": 0.12,
+    "PassiveId": 2, "EvolvedId": 104
+  },
+  {
+    "Id": 5, "Name": "魔法炮", "Description": "蓄力后射出重弹，命中时造成大范围爆炸。",
+    "Kind": 0, "MaxLevel": 5, "Damage": 26, "Cooldown": 2.0, "Projectiles": 1, "Range": 4.6,
+    "Area": 1.6, "Speed": 6.5, "Pierce": 0, "Sprite": "proj_orb", "ProjectileRadius": 0.3, "SplashRadius": 1.6, "Duration": 2.2,
+    "SlowFactor": 0.7, "DamagePerLevel": 0.32, "CooldownPerLevel": 0.06, "CountPerLevel": 0, "AreaPerLevel": 0.14,
+    "PassiveId": 8, "EvolvedId": 105, "Mount": 1
+  },
+  {
+    "Id": 6, "Name": "雷电法典", "Description": "雷电在敌人之间跳跃，每次跳跃伤害递减。",
+    "Kind": 5, "MaxLevel": 5, "Damage": 14, "Cooldown": 1.1, "Projectiles": 1, "Range": 4.4,
+    "Area": 2.4, "Speed": 0, "Pierce": 0, "Sprite": "proj_magic", "ProjectileRadius": 0.2, "SplashRadius": 0, "Duration": 0.15,
+    "SlowFactor": 0.7, "DamagePerLevel": 0.26, "CooldownPerLevel": 0.06, "CountPerLevel": 1, "AreaPerLevel": 0.12,
+    "PassiveId": 10, "EvolvedId": 106
+  },
+  {
+    "Id": 7, "Name": "定时炸弹", "Description": "朝敌人脚下抛雷，短暂引信后爆炸。",
+    "Kind": 6, "MaxLevel": 5, "Damage": 30, "Cooldown": 2.2, "Projectiles": 1, "Range": 4.8,
+    "Area": 1.5, "Speed": 0, "Pierce": 0, "Sprite": "proj_bomb", "ProjectileRadius": 0.2, "SplashRadius": 1.5, "Duration": 0.9,
+    "SlowFactor": 0.7, "DamagePerLevel": 0.3, "CooldownPerLevel": 0.06, "CountPerLevel": 1, "AreaPerLevel": 0.14,
+    "PassiveId": 7, "EvolvedId": 107
+  },
+  {
+    "Id": 8, "Name": "权能法杖", "Description": "在脚下持续造成范围伤害并减速敌人。",
+    "Kind": 3, "MaxLevel": 5, "Damage": 4, "Cooldown": 0.5, "Projectiles": 1, "Range": 1.8,
+    "Area": 2.6, "Speed": 0, "Pierce": 0, "Sprite": "aura", "ProjectileRadius": 0.2, "SplashRadius": 0, "Duration": 1.5,
+    "SlowFactor": 0.6, "DamagePerLevel": 0.3, "CooldownPerLevel": 0.06, "CountPerLevel": 0, "AreaPerLevel": 0.14,
+    "PassiveId": 5, "EvolvedId": 108
+  },
+
+  {
+    "Id": 101, "Name": "穿云弓", "Description": "进化：箭矢贯穿整条直线，并附带贯穿爆炸。",
+    "Kind": 0, "MaxLevel": 5, "Damage": 34, "Cooldown": 0.45, "Projectiles": 2, "Range": 4.6,
+    "Area": 1.2, "Speed": 16, "Pierce": 4, "Sprite": "proj_arrow", "ProjectileRadius": 0.18, "SplashRadius": 0.5, "Duration": 1.4,
+    "SlowFactor": 0.7, "DamagePerLevel": 0, "CooldownPerLevel": 0, "CountPerLevel": 0, "AreaPerLevel": 0,
+    "PassiveId": 1, "EvolvedId": 0
+  },
+  {
+    "Id": 102, "Name": "千刃轮", "Description": "进化：四把巨刃高速环绕，切开会减速敌人。",
+    "Kind": 1, "MaxLevel": 5, "Damage": 20, "Cooldown": 0.35, "Projectiles": 4, "Range": 2.6,
+    "Area": 0.5, "Speed": 3.4, "Pierce": 0, "Sprite": "blade", "ProjectileRadius": 0.16, "SplashRadius": 0, "Duration": 1.5,
+    "SlowFactor": 0.7, "DamagePerLevel": 0, "CooldownPerLevel": 0, "CountPerLevel": 0, "AreaPerLevel": 0,
+    "PassiveId": 2, "EvolvedId": 0
+  },
+  {
+    "Id": 103, "Name": "断罪巨剑", "Description": "进化：挥出扇形剑气，范围翻倍。",
+    "Kind": 4, "MaxLevel": 5, "Damage": 70, "Cooldown": 0.9, "Projectiles": 1, "Range": 3.6,
+    "Area": 3.6, "Speed": 0, "Pierce": 0, "Sprite": "proj_slash", "ProjectileRadius": 0.2, "SplashRadius": 0, "Duration": 0.18,
+    "SlowFactor": 0.7, "DamagePerLevel": 0, "CooldownPerLevel": 0, "CountPerLevel": 0, "AreaPerLevel": 0,
+    "PassiveId": 3, "EvolvedId": 0
+  },
+  {
+    "Id": 104, "Name": "星陨飞弹", "Description": "进化：飞弹齐射并留下持续灼烧。",
+    "Kind": 2, "MaxLevel": 5, "Damage": 30, "Cooldown": 0.85, "Projectiles": 3, "Range": 4.6,
+    "Area": 1.2, "Speed": 8, "Pierce": 0, "Sprite": "proj_magic", "ProjectileRadius": 0.24, "SplashRadius": 1.3, "Duration": 2.0,
+    "SlowFactor": 0.7, "DamagePerLevel": 0, "CooldownPerLevel": 0, "CountPerLevel": 0, "AreaPerLevel": 0,
+    "PassiveId": 4, "EvolvedId": 0
+  },
+  {
+    "Id": 105, "Name": "湮灭炮", "Description": "进化：每次两发，爆炸范围覆盖半个屏幕。",
+    "Kind": 0, "MaxLevel": 5, "Damage": 60, "Cooldown": 1.2, "Projectiles": 2, "Range": 5.2,
+    "Area": 2.4, "Speed": 7, "Pierce": 1, "Sprite": "proj_orb", "ProjectileRadius": 0.34, "SplashRadius": 2.4, "Duration": 2.2,
+    "SlowFactor": 0.7, "DamagePerLevel": 0, "CooldownPerLevel": 0, "CountPerLevel": 0, "AreaPerLevel": 0,
+    "PassiveId": 5, "EvolvedId": 0, "Mount": 1
+  },
+  {
+    "Id": 106, "Name": "天罚法典", "Description": "进化：雷电跳跃次数与伤害大幅提升。",
+    "Kind": 5, "MaxLevel": 5, "Damage": 34, "Cooldown": 0.7, "Projectiles": 2, "Range": 5.0,
+    "Area": 3.0, "Speed": 0, "Pierce": 0, "Sprite": "proj_magic", "ProjectileRadius": 0.2, "SplashRadius": 0, "Duration": 0.15,
+    "SlowFactor": 0.7, "DamagePerLevel": 0, "CooldownPerLevel": 0, "CountPerLevel": 0, "AreaPerLevel": 0,
+    "PassiveId": 6, "EvolvedId": 0
+  },
+  {
+    "Id": 107, "Name": "炼狱炸弹", "Description": "进化：一次抛三颗雷，爆炸留下火海。",
+    "Kind": 6, "MaxLevel": 5, "Damage": 70, "Cooldown": 1.4, "Projectiles": 3, "Range": 5.2,
+    "Area": 2.2, "Speed": 0, "Pierce": 0, "Sprite": "proj_bomb", "ProjectileRadius": 0.24, "SplashRadius": 2.2, "Duration": 0.8,
+    "SlowFactor": 0.7, "DamagePerLevel": 0, "CooldownPerLevel": 0, "CountPerLevel": 0, "AreaPerLevel": 0,
+    "PassiveId": 7, "EvolvedId": 0
+  },
+  {
+    "Id": 108, "Name": "神权法杖", "Description": "进化：光环半径与伤害大幅提升，并持续吸住敌人。",
+    "Kind": 3, "MaxLevel": 5, "Damage": 16, "Cooldown": 0.35, "Projectiles": 1, "Range": 2.6,
+    "Area": 3.8, "Speed": 0, "Pierce": 0, "Sprite": "aura", "ProjectileRadius": 0.2, "SplashRadius": 0, "Duration": 1.5,
+    "SlowFactor": 0.45, "DamagePerLevel": 0, "CooldownPerLevel": 0, "CountPerLevel": 0, "AreaPerLevel": 0,
+    "PassiveId": 8, "EvolvedId": 0
+  }
+]
