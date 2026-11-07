@@ -41,7 +41,6 @@ namespace App.Battle
         public int Gold { get; private set; }
         public bool IsOver { get; private set; }
         public bool IsVictory { get; private set; }
-        public bool IsPaused { get; set; }
 
         /// <summary>用于三选一随机与掉落随机，保证同 seed 可复现。</summary>
         public System.Random Rng { get; }

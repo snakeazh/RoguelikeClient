@@ -16,44 +16,49 @@ namespace App.Battle
     public sealed partial class BattleRunner : MonoBehaviour
     {
         // ---------- 升级 ----------
-        private async Task OpenLevelUpAsync()
+        /// <summary>
+        /// 进一次升级就吃掉所有待升级的等级：连升时在同一个循环里连续开面板，
+        /// 而不是关掉面板后靠下一帧的 Update 重新进来（那样中间会漏跑一帧推进）。
+        /// </summary>
+        private async Task RunLevelUpAsync()
         {
-            if (_levelUpOpen)
+            if (!SetPhase(BattlePhase.LevelUp))
             {
                 return;
             }
 
-            _levelUpOpen = true;
-            Session.IsPaused = true;
-
             try
             {
-                var options = ChoiceService.Build(Session);
-                var vm = new LevelUpViewModel();
-                vm.Setup(Session.Level + 1, options);
-                await _ui.Open(vm);
-                var index = await vm.WaitChoiceAsync();
-                await _ui.Close(vm);
-
-                Session.IsPaused = false;
-
-                if (index >= 0 && index < options.Count)
+                while (Session.CanLevelUp && Phase == BattlePhase.LevelUp)
                 {
-                    ChoiceService.Apply(Session, options[index]);
-                }
+                    var options = ChoiceService.Build(Session);
+                    var vm = new LevelUpViewModel();
+                    vm.Setup(Session.Level + 1, options);
+                    await _ui.Open(vm);
+                    var index = await vm.WaitChoiceAsync();
+                    await _ui.Close(vm);
 
-                Session.TryLevelUp();
-                Session.HealPercent(0.15f);
-                StateChanged?.Invoke();
+                    if (index >= 0 && index < options.Count)
+                    {
+                        ChoiceService.Apply(Session, options[index]);
+                    }
+
+                    Session.TryLevelUp();
+                    Session.HealPercent(0.15f);
+                    StateChanged?.Invoke();
+                }
             }
             catch (Exception e)
             {
                 AppLog.Exception(LogChannel.Game, e);
-                Session.IsPaused = false;
             }
             finally
             {
-                _levelUpOpen = false;
+                // 只有还停在 LevelUp 才恢复；期间被销毁或已进入结算都不要覆盖状态。
+                if (Phase == BattlePhase.LevelUp)
+                {
+                    SetPhase(BattlePhase.Running);
+                }
             }
         }
 
@@ -75,15 +80,13 @@ namespace App.Battle
 
         private async Task EndAsync(bool victory)
         {
-            if (_ending)
+            // Phase 就是锁：重复调用会被 BattlePhaseRules 拒绝，不需要额外的 _ending。
+            if (!SetPhase(BattlePhase.Ending))
             {
                 return;
             }
 
-            _ending = true;
-            _running = false;
             Session.Finish(victory);
-            Session.IsPaused = true;
             ClearBattlefield();
             StateChanged?.Invoke();
 
@@ -111,7 +114,7 @@ namespace App.Battle
                 AppLog.Exception(LogChannel.Game, e);
             }
 
-            Session.IsPaused = false;
+            SetPhase(BattlePhase.Finished);
             _onExit?.Invoke();
         }
     }

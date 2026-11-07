@@ -20,7 +20,7 @@ namespace App.Battle
     /// 设计取舍：
     /// - 不用物理组件，全部是圆形距离判定，方便以后换成 ECS / Job，也避免占位美术的 collider 调参；
     /// - 敌人/弹体/拾取物都是普通 List + 每帧倒序遍历销毁，规模在几百个单位以内足够；
-    /// - 暂停（升级三选一 / 结算）统一用 Time.timeScale = 0 + Session.IsPaused。
+    /// - 流程状态收敛在 <see cref="BattlePhase"/>：只有 Running 推进模拟，升级/暂停/结算都在等面板或玩家。
     /// </summary>
     public sealed partial class BattleRunner : MonoBehaviour
     {
@@ -45,9 +45,6 @@ namespace App.Battle
         private const float PlayerHitInvulnerability = 0.6f;
 
         private float _playerInvulnerableUntil;
-        private bool _running;
-        private bool _ending;
-        private bool _levelUpOpen;
         private float _freezeUntil;
         private float _hudTimer;
         private Vector2 _joystickOrigin;
@@ -57,6 +54,15 @@ namespace App.Battle
         public PlayerUnit Player { get; private set; }
         public IReadOnlyList<EnemyUnit> Enemies => _enemies;
         public IReadOnlyList<ProjectileUnit> Projectiles => _projectiles;
+
+        /// <summary>当前阶段。只能用 <see cref="SetPhase"/> 改，转移合法性由 <see cref="BattlePhaseRules"/> 决定。</summary>
+        public BattlePhase Phase { get; private set; } = BattlePhase.Idle;
+
+        /// <summary>模拟是否冻结（UI 层想加「暂停中」提示时读这个）。</summary>
+        public bool IsSimulationPaused => Phase.BlocksSimulation();
+
+        /// <summary>阶段变化通知，调试面板 / HUD 可订阅。</summary>
+        public event Action<BattlePhase, BattlePhase> PhaseChanged;
 
         /// <summary>冒烟测试用的加速倍率。</summary>
         public float SimulationSpeed { get; set; } = 1f;
@@ -134,7 +140,7 @@ namespace App.Battle
             }
 
             Time.timeScale = 1f;
-            _running = true;
+            SetPhase(BattlePhase.Running);
 
             // 排查用：播放器目录下有 autocam.flag 时自动接管操作（发布包不受影响）。
             AutoPlay = AutoPlay || DebugAutoplayHook.Enabled;
@@ -142,28 +148,65 @@ namespace App.Battle
             AppLog.Info(LogChannel.Game, "[Battle] begin");
         }
 
+        /// <summary>
+        /// 唯一的阶段写入口：非法转移只告警不抛异常，避免异步回调里的一次误调用把整局拧坏。
+        /// </summary>
+        private bool SetPhase(BattlePhase next)
+        {
+            if (!BattlePhaseRules.CanTransition(Phase, next))
+            {
+                AppLog.Warn(LogChannel.Game, $"[Battle] illegal transition {Phase} -> {next}, ignored");
+                return false;
+            }
+
+            var previous = Phase;
+            Phase = next;
+            AppLog.Info(LogChannel.Game, $"[Battle] phase {previous} -> {next}");
+            PhaseChanged?.Invoke(previous, next);
+            return true;
+        }
+
+        /// <summary>主动暂停（切后台、以后的 ESC 菜单）。只有战斗中才生效。</summary>
+        public bool RequestPause()
+        {
+            return SetPhase(BattlePhase.Paused);
+        }
+
+        /// <summary>从暂停恢复。</summary>
+        public bool RequestResume()
+        {
+            return SetPhase(BattlePhase.Running);
+        }
+
+        private void OnApplicationPause(bool paused)
+        {
+            if (!paused)
+            {
+                return;
+            }
+
+            // 手机切后台：回来时不该被怪白打几秒。
+            if (Application.isMobilePlatform)
+            {
+                RequestPause();
+            }
+        }
+
         private void Update()
         {
-            if (!_running || Session == null)
-            {
-                return;
-            }
-
+            // 黑边在任何阶段都要维持，否则窗口变化后暂停中也会露出画面外的部分。
             RefreshAspectGuard();
 
-            // 结束一局后必须先进结算流程：IsOver 由死亡/击杀 Boss/时间到 三种情况设置，
-            // 放在暂停判断之前，否则会被上面的 early return 挡住，结算界面永远不弹。
-            if (Session.IsOver && !_ending)
-            {
-                _ = EndAsync(Session.IsVictory);
-                return;
-            }
-
-            if (Session.IsPaused || _levelUpOpen || _ending)
+            if (Phase != BattlePhase.Running)
             {
                 return;
             }
 
+            TickRunning();
+        }
+
+        private void TickRunning()
+        {
             var deltaTime = Time.deltaTime * Mathf.Max(0.01f, SimulationSpeed);
             if (deltaTime > 0.1f)
             {
@@ -191,7 +234,7 @@ namespace App.Battle
 
             if (Session.CanLevelUp)
             {
-                _ = OpenLevelUpAsync();
+                _ = RunLevelUpAsync();
                 return;
             }
 
