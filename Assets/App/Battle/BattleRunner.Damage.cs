@@ -1,0 +1,243 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using App.Bootstrap;
+using App.Config;
+using App.UI;
+using App.UI.Battle;
+using Framework.Log;
+using Framework.UI;
+using Framework.UI.Navigation;
+using UnityEngine;
+
+namespace App.Battle
+{
+    public sealed partial class BattleRunner : MonoBehaviour
+    {
+        // ---------- 伤害 ----------
+        public void DamageEnemy(EnemyUnit enemy, float amount, bool crit = false)
+        {
+            if (enemy == null || enemy.IsDead)
+            {
+                return;
+            }
+
+            var died = enemy.TakeDamage(amount);
+
+            PlayEnemyHitFx(enemy, amount, crit);
+
+            if (!died)
+            {
+                return;
+            }
+
+            KillEnemy(enemy);
+        }
+
+        /// <summary>敌人受击反馈：飘字 + 白色火花（闪白/击退/回弹在 EnemyUnit 内部）。</summary>
+        private void PlayEnemyHitFx(EnemyUnit enemy, float amount, bool crit)
+        {
+            var color = crit ? new Color(1f, 0.85f, 0.3f) : Color.white;
+            DamagePopup.Show(
+                enemy.transform.position + Vector3.up * (enemy.Radius + 0.25f), amount, crit, color);
+
+            TransientFx.Flash(
+                enemy.transform.position,
+                enemy.Radius * (crit ? 1.7f : 1.3f),
+                new Color(1f, 1f, 1f, crit ? 0.9f : 0.7f),
+                crit ? 0.14f : 0.1f,
+                22);
+        }
+
+        private void KillEnemy(EnemyUnit enemy)
+        {
+            Session.AddKill();
+
+            var def = enemy.Def;
+            var position = (Vector2)enemy.transform.position;
+
+            // 死亡爆散：让「打死了」和「打了一下」在画面上区分开
+            TransientFx.Flash(
+                position,
+                enemy.Radius * (enemy.IsBoss ? 4.2f : 2.6f),
+                new Color(1f, 1f, 1f, 0.7f),
+                enemy.IsBoss ? 0.35f : 0.2f,
+                18);
+
+            // 经验糖：经验值随分钟成长，保证 5 分钟内能打到 20 级（满级需要约 3500 点）。
+            if (def.Exp > 0)
+            {
+                var exp = Mathf.Max(1, Mathf.RoundToInt(def.Exp * ExpScale()));
+                var kind = exp >= 20 ? PickupKind.ExpLarge : exp >= 5 ? PickupKind.ExpMedium : PickupKind.ExpSmall;
+                SpawnPickup(kind, exp, position);
+            }
+
+            // 金币 / 小蛋糕掉落
+            var luck = Session.Luck;
+            if (UnityEngine.Random.value < 0.08f + luck * 0.002f)
+            {
+                SpawnPickup(PickupKind.Gold, 10, position + UnityEngine.Random.insideUnitCircle * 0.2f);
+            }
+
+            if (UnityEngine.Random.value < 0.04f)
+            {
+                SpawnPickup(PickupKind.Cake, 0, position);
+            }
+
+            if (enemy.IsElite)
+            {
+                SpawnPickup(PickupKind.Gold, 25, position);
+                if (UnityEngine.Random.value < 0.35f)
+                {
+                    SpawnPickup(PickupKind.Chest, 0, position + UnityEngine.Random.insideUnitCircle * 0.3f);
+                }
+            }
+
+            // 分裂
+            if (def.Behavior == EnemyBehavior.Splitter || enemy.Affix == EliteAffix.Split)
+            {
+                for (var i = 0; i < 2; i++)
+                {
+                    var offset = UnityEngine.Random.insideUnitCircle * 0.6f;
+                    SpawnEnemy(8, position + offset, EliteAffix.None, Session.Elapsed);
+                }
+            }
+
+            _enemies.Remove(enemy);
+            enemy.KillSelf();
+
+            if (enemy.IsBoss)
+            {
+                SpawnPickup(PickupKind.Chest, 0, position);
+                Session.AddGold(30);
+
+                if (def.Id == BattleSession.BossEnemyId)
+                {
+                    Session.Finish(true);
+                    AppLog.Info(LogChannel.Game, "[Battle] final boss defeated");
+                }
+                else
+                {
+                    Toast($"{def.Name} 被击败！");
+                    AppLog.Info(LogChannel.Game, $"[Battle] boss defeated id={def.Id}");
+                }
+            }
+        }
+
+        public void DamagePlayer(float amount)
+        {
+            if (Player == null || Player.IsInvulnerable || Session.IsOver)
+            {
+                return;
+            }
+
+            // 受击后短暂无敌：避免被人群连续判定瞬间打死（一次伤害结算一堆敌人）。
+            if (Time.time < _playerInvulnerableUntil)
+            {
+                return;
+            }
+
+            _playerInvulnerableUntil = Time.time + PlayerHitInvulnerability;
+            Session.ApplyDamage(amount);
+
+            // 受击反馈：角色闪红 + 屏幕边缘泛红 + 镜头震动 + 红色飘字
+            Player.FlashHurt();
+
+            var severity = Mathf.Clamp01(amount / Mathf.Max(1f, Session.MaxHp) * 2.5f);
+            if (_hurtOverlay != null)
+            {
+                _hurtOverlay.Pulse(0.2f + severity * 0.4f);
+            }
+
+            if (_cameraFollow != null)
+            {
+                _cameraFollow.Shake(0.04f + severity * 0.12f, 0.18f);
+            }
+
+            DamagePopup.Show(
+                Player.transform.position + Vector3.up * (PlayerUnit.Radius + 0.3f),
+                amount,
+                false,
+                new Color(1f, 0.35f, 0.35f));
+        }
+
+        public void ExplodeAt(Vector3 position, float radius, float damage, bool hitPlayer)
+        {
+            var center = (Vector2)position;
+            foreach (var enemy in _enemies.ToArray())
+            {
+                if (enemy.IsDead)
+                {
+                    continue;
+                }
+
+                if (Vector2.Distance(center, enemy.transform.position) <= radius + enemy.Radius)
+                {
+                    DamageEnemy(enemy, damage);
+                }
+            }
+
+            if (hitPlayer && Player != null)
+            {
+                if (Vector2.Distance(center, Player.transform.position) <= radius + PlayerUnit.Radius)
+                {
+                    DamagePlayer(damage);
+                }
+            }
+        }
+
+        public void SpawnPlayerProjectile(
+            Vector2 position,
+            Vector2 direction,
+            float speed,
+            float damage,
+            float radius,
+            int pierce,
+            float splash,
+            float life,
+            EnemyUnit homingTarget = null,
+            string spriteKey = null)
+        {
+            var go = BattleVisuals.Spawn(BattleVisuals.ProjectilePrefab, "Projectile", transform);
+            var projectile = go.AddComponent<ProjectileUnit>();
+            projectile.InitPlayer(position, direction, speed, damage, radius, pierce, splash, life, 0f, homingTarget, spriteKey);
+            _projectiles.Add(projectile);
+        }
+
+        public void SpawnEnemyProjectile(Vector3 position, Vector2 direction, float speed, float damage)
+        {
+            var go = BattleVisuals.Spawn(BattleVisuals.ProjectilePrefab, "EnemyProjectile", transform);
+            var projectile = go.AddComponent<ProjectileUnit>();
+            projectile.InitEnemy(position, direction, speed, damage, 0.16f);
+            _projectiles.Add(projectile);
+        }
+
+        /// <summary>经验成长系数：0 分钟 1 倍，每分钟 +1.8 倍（5 分钟约 10 倍）。</summary>
+        private float ExpScale()
+        {
+            return 1f + Session.Elapsed / 60f * 1.8f;
+        }
+
+        private void SpawnPickup(PickupKind kind, int value, Vector2 position)
+        {
+            var go = BattleVisuals.Spawn(BattleVisuals.PickupPrefab, "Pickup", transform);
+            var pickup = go.AddComponent<PickupUnit>();
+            pickup.Init(kind, value, position);
+            _pickups.Add(pickup);
+        }
+
+        public void DropRestPickups()
+        {
+            if (Player == null)
+            {
+                return;
+            }
+
+            var position = (Vector2)Player.transform.position;
+            SpawnPickup(PickupKind.Cake, 0, position + new Vector2(-1.2f, 0.5f));
+            SpawnPickup(PickupKind.Magnet, 0, position + new Vector2(1.2f, 0.5f));
+        }
+
+    }
+}
