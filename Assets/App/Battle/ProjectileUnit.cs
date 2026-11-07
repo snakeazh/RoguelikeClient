@@ -101,7 +101,7 @@ namespace App.Battle
         }
 
         /// <summary>返回 true 表示本帧应该销毁。</summary>
-        public bool Tick(float deltaTime, BattleRunner runner)
+        public bool Tick(float deltaTime, IBattleContext runner)
         {
             _life -= deltaTime;
             if (_life <= 0f)
@@ -134,7 +134,7 @@ namespace App.Battle
             return FromPlayer ? TickPlayerProjectile(runner) : TickEnemyProjectile(runner);
         }
 
-        private bool TickPlayerProjectile(BattleRunner runner)
+        private bool TickPlayerProjectile(IBattleContext runner)
         {
             var position = (Vector2)transform.position;
             s_targets.Clear();
@@ -171,7 +171,7 @@ namespace App.Battle
             return false;
         }
 
-        private bool TickEnemyProjectile(BattleRunner runner)
+        private bool TickEnemyProjectile(IBattleContext runner)
         {
             var player = runner.Player;
             if (player == null)

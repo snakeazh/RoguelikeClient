@@ -15,7 +15,7 @@ namespace App.Battle
         private const float MinCooldown = 0.12f;
         private const float BladeHitCooldown = 0.35f;
 
-        private BattleRunner _runner;
+        private IBattleContext _runner;
         private BattleSession _session;
         private readonly List<Blade> _blades = new List<Blade>();
         private readonly List<Bomb> _bombs = new List<Bomb>();
@@ -51,7 +51,7 @@ namespace App.Battle
             public Color Color;
         }
 
-        public void Init(BattleRunner runner, BattleSession session)
+        public void Init(IBattleContext runner, BattleSession session)
         {
             _runner = runner;
             _session = session;
@@ -532,7 +532,7 @@ namespace App.Battle
                 var position = center + offset;
 
                 var bombGo = new GameObject("Bomb");
-                bombGo.transform.SetParent(_runner.transform, false);
+                bombGo.transform.SetParent(_runner.Root, false);
                 bombGo.transform.position = position;
                 BattleVisuals.Body(bombGo.transform, "Battle/Sprites/proj_bomb", Color.white, 0.34f, BattleSort.Bomb, PlaceholderArt.Square);
 
@@ -608,7 +608,7 @@ namespace App.Battle
                 var bladeWeapon = FindOrbitWeapon(_blades.Count);
                 var size = bladeWeapon == null ? 0.34f : AreaOf(bladeWeapon, bladeWeapon.Def.Area);
                 var bladeGo = new GameObject("Blade");
-                bladeGo.transform.SetParent(_runner.transform, false);
+                bladeGo.transform.SetParent(_runner.Root, false);
                 var sr = BattleVisuals.Body(
                     bladeGo.transform,
                     BattleVisuals.Blade,

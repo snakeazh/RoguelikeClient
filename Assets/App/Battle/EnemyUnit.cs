@@ -9,7 +9,7 @@ namespace App.Battle
     /// </summary>
     public sealed class EnemyUnit : MonoBehaviour
     {
-        private BattleRunner _runner;
+        private IBattleContext _runner;
         private SpriteRenderer _body;
         private SpriteRenderer _shadow;
         private float _speed;
@@ -45,7 +45,7 @@ namespace App.Battle
         public float NextBladeHitTime;
 
         /// <summary>出场时按分钟做的数值放大（HP 每分钟 +40%，伤害 +20%）。</summary>
-        public void Init(BattleRunner runner, EnemyDef def, Vector3 position, EliteAffix affix, float minuteScaleHp, float minuteScaleDamage)
+        public void Init(IBattleContext runner, EnemyDef def, Vector3 position, EliteAffix affix, float minuteScaleHp, float minuteScaleDamage)
         {
             _runner = runner;
             Def = def;

@@ -36,7 +36,7 @@ namespace App.Battle
 
         public static float DamageScale(float elapsed) => 1f + 0.2f * Mathf.Floor(elapsed / 60f);
 
-        public void Tick(float deltaTime, float elapsed, BattleRunner runner)
+        public void Tick(float deltaTime, float elapsed, IBattleContext runner)
         {
             for (var i = 0; i < _waves.Count; i++)
             {
@@ -59,7 +59,7 @@ namespace App.Battle
             }
         }
 
-        private void TickSpawn(WaveDef wave, float deltaTime, float elapsed, BattleRunner runner)
+        private void TickSpawn(WaveDef wave, float deltaTime, float elapsed, IBattleContext runner)
         {
             if (elapsed < wave.Time || elapsed >= wave.Time + wave.Duration)
             {
@@ -88,7 +88,7 @@ namespace App.Battle
             }
         }
 
-        private void FireOnce(WaveDef wave, float elapsed, BattleRunner runner)
+        private void FireOnce(WaveDef wave, float elapsed, IBattleContext runner)
         {
             AppLog.Info(LogChannel.Game, $"[Battle] wave {wave.Kind} at {wave.Time:0}s");
 

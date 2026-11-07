@@ -22,7 +22,7 @@ namespace App.Battle
     /// - 敌人/弹体/拾取物都是普通 List + 每帧倒序遍历销毁，规模在几百个单位以内足够；
     /// - 流程状态收敛在 <see cref="BattlePhase"/>：只有 Running 推进模拟，升级/暂停/结算都在等面板或玩家。
     /// </summary>
-    public sealed partial class BattleRunner : MonoBehaviour
+    public sealed partial class BattleRunner : MonoBehaviour, IBattleContext
     {
         public static BattleRunner Instance { get; private set; }
 
@@ -53,6 +53,7 @@ namespace App.Battle
         public BattleSession Session { get; private set; }
         public PlayerUnit Player { get; private set; }
         public IReadOnlyList<EnemyUnit> Enemies => _enemies;
+        public Transform Root => transform;
         public IReadOnlyList<ProjectileUnit> Projectiles => _projectiles;
 
         /// <summary>当前阶段。只能用 <see cref="SetPhase"/> 改，转移合法性由 <see cref="BattlePhaseRules"/> 决定。</summary>
