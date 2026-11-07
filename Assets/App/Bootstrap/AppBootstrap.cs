@@ -110,10 +110,10 @@ namespace App.Bootstrap
             await _ui.UI.Open(home);
 
             // 排查用：autocam.flag 存在时自动进战斗（配合 BattleRunner 的自动战斗）。
+            // 发布包里 DebugAutoplayHook.Enabled 恒为 false，StartAutoplay 是空实现，不需要 #if。
             if (App.Battle.DebugAutoplayHook.Enabled)
             {
-                gameObject.AddComponent<App.Battle.DebugAutoPilot>();
-                home.StartBattleCommand.Execute();
+                App.Battle.DebugAutoplayHook.StartAutoplay(this, () => home.StartBattleCommand.Execute());
             }
 
             AppLog.Info(

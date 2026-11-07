@@ -1,39 +1,41 @@
-using App.Bootstrap;
-using App.UI.Battle;
-using Framework.UI;
 using UnityEngine;
 
 namespace App.Battle
 {
+#if UNITY_EDITOR || ENABLE_APP_LOG
     /// <summary>
     /// 配合 <see cref="DebugAutoplayHook"/> 的自动选择：升级三选一自动点第一张。
-    /// 正常的自动战斗机器人只负责移动/冲刺，升级面板必须由外部点掉，否则游戏会停在暂停状态。
+    /// 自动战斗机器人只负责移动/冲刺，升级面板必须由外部点掉，否则模拟会一直冻结在升级阶段。
+    ///
+    /// 只在编辑器 / 带 <c>ENABLE_APP_LOG</c> 的调试包里编译，发布包里这个类型根本不存在。
     /// </summary>
     public sealed class DebugAutoPilot : MonoBehaviour
     {
-        private IUIManager _ui;
+        private Framework.UI.IUIManager _ui;
 
         private void Update()
         {
             if (_ui == null)
             {
-                if (!AppServices.IsReady)
+                if (!App.Bootstrap.AppServices.IsReady)
                 {
                     return;
                 }
 
-                _ui = AppServices.Container.GetService(typeof(IUIManager)) as IUIManager;
+                _ui = App.Bootstrap.AppServices.Container.GetService(typeof(Framework.UI.IUIManager))
+                    as Framework.UI.IUIManager;
                 if (_ui == null)
                 {
                     return;
                 }
             }
 
-            var levelUp = _ui.FindOpen<LevelUpViewModel>();
+            var levelUp = _ui.FindOpen<App.UI.Battle.LevelUpViewModel>();
             if (levelUp != null)
             {
                 levelUp.Choose1Command.Execute();
             }
         }
     }
+#endif
 }
