@@ -256,3 +256,27 @@ $proj  = "E:\Work\Roguelike\Client"
   并去掉 `AppBootstrap` 里的 `BattleLauncher` 注册、`HomeViewModel/HomeView` 的 `StartBattleCommand`、
   `AppScreenIds` 里的三个战斗界面 id、`ResResourcePaths` 里的战斗 key、`ConfigTables` 里的战斗表加载。
 - 若要换成别的字体，重新生成 `Assets/Res/Fonts/DemoFont SDF.asset` 并同步 TMP 默认字体即可。
+
+## 11. 版本管理（Git）
+
+仓库根目录就是工程根目录（`.git` 与 `Assets` 同级），主分支 `main`。
+
+```powershell
+cd E:\Work\Roguelike\Client
+git status                # 看这次改了什么
+git diff -- Assets/App    # 看代码差异
+git add -A
+git commit -m "feat: 大剑改成面向方向的扇形刀光"
+git log --oneline -10     # 最近的版本
+```
+
+约定：
+
+- `.gitignore` 已排除生成物 —— `Library/`、`Temp/`、`Builds/`、`Bundles/`、
+  `Assets/StreamingAssets/Bundles/`、`Logs/`、`UserSettings/` 和 Unity 自动生成的
+  `*.csproj` / `*.sln`。**这些不要提交**，否则仓库会膨胀到几个 G。
+- 提交粒度跟着「一次改动」走：修一个 bug、加一个功能、调一次数值各一次提交；
+  提交信息用 `feat:` / `fix:` / `docs:` / `chore:` 前缀，后面写清改了什么。
+- `Assets/**/*.meta` 必须一起提交（Unity 用它维持资源引用，漏了会丢引用）。
+- 二进制美术资源（`Assets/Res/**/*.png`、字体 `.otf`/`.asset`）直接入库；单张图很小，不需要 LFS。
+- 改了二进制资源想回退时用 `git checkout -- <path>` 即可，`.meta` 要一起回退。
