@@ -14,7 +14,7 @@ namespace App.Battle
         private static readonly List<EnemyUnit> s_targets = new List<EnemyUnit>(512);
 
         private Vector2 _velocity;
-        private float _damage;
+        private DamageInfo _damage;
         private float _radius;
         private int _pierce;
         private float _splash;
@@ -32,7 +32,7 @@ namespace App.Battle
             Vector2 position,
             Vector2 direction,
             float speed,
-            float damage,
+            DamageInfo damage,
             float radius,
             int pierce,
             float splash,
@@ -71,7 +71,7 @@ namespace App.Battle
             FromPlayer = false;
             transform.position = position;
             _velocity = direction.normalized * speed;
-            _damage = damage;
+            _damage = DamageInfo.Plain(damage);
             _radius = Mathf.Max(0.05f, radius);
             _pierce = 0;
             _splash = 0f;
@@ -157,7 +157,7 @@ namespace App.Battle
 
                 if (_splash > 0f)
                 {
-                    runner.ExplodeAt(transform.position, _splash, _damage * 0.5f, false);
+                    runner.ExplodeAt(transform.position, _splash, _damage.Scaled(0.5f), false);
                 }
 
                 if (_pierce <= 0)
@@ -184,7 +184,7 @@ namespace App.Battle
             {
                 if (!player.IsInvulnerable)
                 {
-                    runner.DamagePlayer(_damage);
+                    runner.DamagePlayer(_damage.Amount);
                 }
 
                 return true;

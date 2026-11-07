@@ -337,7 +337,7 @@ namespace App.Battle
 
             if (_fuseLeft <= 0f)
             {
-                _runner.ExplodeAt(transform.position, Def.ExplodeRadius, _damage, true);
+                _runner.ExplodeAt(transform.position, Def.ExplodeRadius, DamageInfo.Plain(_damage), true);
                 KillSelf();
             }
         }

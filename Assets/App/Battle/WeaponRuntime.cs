@@ -23,9 +23,6 @@ namespace App.Battle
         private float _orbitAngle;
         private float _auraPulse;
 
-        // 最近一次 RollDamage 是否暴击，用来给飘字/火花区分表现
-        private bool _lastCrit;
-
         // 随身炮台（魔法炮 / 湮灭炮）：有 Mount=1 的武器时存在
         private CannonRig _cannon;
         private EnemyUnit _cannonTarget;
@@ -49,7 +46,7 @@ namespace App.Battle
         {
             public Transform Transform;
             public float Fuse;
-            public float Damage;
+            public DamageInfo Damage;
             public float Radius;
             public Color Color;
         }
@@ -357,7 +354,7 @@ namespace App.Battle
 
                 if (Vector2.Distance(origin, enemy.transform.position) <= radius + enemy.Radius)
                 {
-                    _runner.DamageEnemy(enemy, damage, _lastCrit);
+                    _runner.DamageEnemy(enemy, damage);
                     enemy.ApplySlow(slow);
                 }
             }
@@ -393,6 +390,7 @@ namespace App.Battle
 
             aim.Normalize();
 
+            var angle = Mathf.Atan2(aim.y, aim.x) * Mathf.Rad2Deg;
             var radius = AreaOf(weapon, weapon.Def.Area);
             var halfAngle = CleaveSpread * 0.5f;
             var damage = RollDamage(DamageOf(weapon));
@@ -421,10 +419,9 @@ namespace App.Battle
 
             foreach (var enemy in hits)
             {
-                _runner.DamageEnemy(enemy, damage, _lastCrit);
+                _runner.DamageEnemy(enemy, damage);
             }
 
-            var angle = Mathf.Atan2(aim.y, aim.x) * Mathf.Rad2Deg;
             TransientFx.Fan(origin, angle, radius * 1.05f, CleaveSpread, new Color(1f, 0.97f, 0.86f, 1f), 0.26f);
         }
 
@@ -464,8 +461,8 @@ namespace App.Battle
                 LightningFx.Bolt(boltFrom, target, boltColor, 0.15f + i * 0.015f);
                 boltFrom = target;
 
-                // 先 RollDamage 再读 _lastCrit：C# 实参从左到右求值，所以这里拿到的是本次的暴击结果
-                _runner.DamageEnemy(current, RollDamage(damage), _lastCrit);
+                _runner.DamageEnemy(current, RollDamage(damage));
+
                 TransientFx.Flash(current.transform.position, current.Radius * 2.4f, new Color(0.7f, 0.85f, 1f), 0.16f);
 
                 damage *= 0.85f;
@@ -543,7 +540,7 @@ namespace App.Battle
                 {
                     Transform = bombGo.transform,
                     Fuse = Mathf.Max(0.2f, weapon.Def.Duration),
-                    Damage = damage,
+                    Damage = RollDamage(damage),
                     Radius = radius,
                     Color = new Color(1f, 0.6f, 0.2f)
                 });
@@ -578,7 +575,7 @@ namespace App.Battle
 
                     if (Vector2.Distance(position, enemy.transform.position) <= bomb.Radius + enemy.Radius)
                     {
-                        _runner.DamageEnemy(enemy, RollDamage(bomb.Damage), _lastCrit);
+                        _runner.DamageEnemy(enemy, bomb.Damage);
                     }
                 }
 
@@ -679,7 +676,7 @@ namespace App.Battle
                     if (Vector2.Distance(position, enemy.transform.position) <= weapon.Def.Area + enemy.Radius)
                     {
                         enemy.NextBladeHitTime = Time.time + BladeHitCooldown;
-                        _runner.DamageEnemy(enemy, damage, _lastCrit);
+                        _runner.DamageEnemy(enemy, damage);
                     }
                 }
             }
@@ -714,14 +711,13 @@ namespace App.Battle
         }
 
         /// <summary>
-        /// 伤害骰：暴击则翻倍。同时把结果记进 <see cref="_lastCrit"/>，
-        /// 调用方紧接着用 `DamageEnemy(enemy, RollDamage(x), _lastCrit)` 把暴击标记传下去
-        /// （C# 实参从左到右求值，所以第 3 个参数读到的一定是本次的结果）。
+        /// 伤害骰：暴击则翻倍，数值与暴击标记一起装进 <see cref="DamageInfo"/> 返回。
+        /// 调用方直接把它交给 <c>DamageEnemy</c>，不用再关心求值顺序。
         /// </summary>
-        private float RollDamage(float damage)
+        private DamageInfo RollDamage(float damage)
         {
-            _lastCrit = _session.CritChance > 0f && Random.value < _session.CritChance;
-            return _lastCrit ? damage * 2f : damage;
+            var crit = _session.CritChance > 0f && Random.value < _session.CritChance;
+            return new DamageInfo(crit ? damage * 2f : damage, crit);
         }
 
         private EnemyUnit FindNearestEnemy(float range)

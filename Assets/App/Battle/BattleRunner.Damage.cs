@@ -16,16 +16,16 @@ namespace App.Battle
     public sealed partial class BattleRunner : MonoBehaviour
     {
         // ---------- 伤害 ----------
-        public void DamageEnemy(EnemyUnit enemy, float amount, bool crit = false)
+        public void DamageEnemy(EnemyUnit enemy, DamageInfo damage)
         {
             if (enemy == null || enemy.IsDead)
             {
                 return;
             }
 
-            var died = enemy.TakeDamage(amount);
+            var died = enemy.TakeDamage(damage.Amount);
 
-            PlayEnemyHitFx(enemy, amount, crit);
+            PlayEnemyHitFx(enemy, damage);
 
             if (!died)
             {
@@ -36,11 +36,12 @@ namespace App.Battle
         }
 
         /// <summary>敌人受击反馈：飘字 + 白色火花（闪白/击退/回弹在 EnemyUnit 内部）。</summary>
-        private void PlayEnemyHitFx(EnemyUnit enemy, float amount, bool crit)
+        private void PlayEnemyHitFx(EnemyUnit enemy, DamageInfo damage)
         {
+            var crit = damage.Crit;
             var color = crit ? new Color(1f, 0.85f, 0.3f) : Color.white;
             DamagePopup.Show(
-                enemy.transform.position + Vector3.up * (enemy.Radius + 0.25f), amount, crit, color);
+                enemy.transform.position + Vector3.up * (enemy.Radius + 0.25f), damage.Amount, crit, color);
 
             TransientFx.Flash(
                 enemy.transform.position,
@@ -162,7 +163,7 @@ namespace App.Battle
                 new Color(1f, 0.35f, 0.35f));
         }
 
-        public void ExplodeAt(Vector3 position, float radius, float damage, bool hitPlayer)
+        public void ExplodeAt(Vector3 position, float radius, DamageInfo damage, bool hitPlayer)
         {
             var center = (Vector2)position;
             foreach (var enemy in _enemies.ToArray())
@@ -182,7 +183,7 @@ namespace App.Battle
             {
                 if (Vector2.Distance(center, Player.transform.position) <= radius + PlayerUnit.Radius)
                 {
-                    DamagePlayer(damage);
+                    DamagePlayer(damage.Amount);
                 }
             }
         }
@@ -191,7 +192,7 @@ namespace App.Battle
             Vector2 position,
             Vector2 direction,
             float speed,
-            float damage,
+            DamageInfo damage,
             float radius,
             int pierce,
             float splash,

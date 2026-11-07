@@ -75,7 +75,7 @@ namespace App.Battle
                     break;
 
                 case PickupKind.Bomb:
-                    ExplodeAt(Player.transform.position, 4f, 60f, false);
+                    ExplodeAt(Player.transform.position, 4f, DamageInfo.Plain(60f), false);
                     Toast("糖果炸弹！");
                     break;
 
