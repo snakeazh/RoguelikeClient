@@ -127,16 +127,16 @@ namespace App.Battle
         }
 
         // ---------- 经验与等级 ----------
+        /// <summary>加经验，返回“是否攒够了一次升级”。经验本身始终会记账（满级/已结束也一样）。</summary>
         public bool AddExp(int amount)
         {
-            if (amount <= 0 || IsOver || Level >= MaxLevel)
+            if (amount <= 0)
             {
-                Exp += amount;
                 return false;
             }
 
             Exp += amount;
-            return Exp >= ExpToNext;
+            return !IsOver && Level < MaxLevel && Exp >= ExpToNext;
         }
 
         /// <summary>消耗一次升级（一次只升一级，多出来的经验留到下一次）。</summary>
@@ -258,6 +258,30 @@ namespace App.Battle
             return paired != null && paired.IsMaxLevel;
         }
 
+        /// <summary>升级武器（三选一 / 宝箱共用）。日志与上限判断都收在这里。</summary>
+        public bool TryUpgradeWeapon(WeaponInstance weapon)
+        {
+            if (weapon == null || !weapon.TryUpgrade())
+            {
+                return false;
+            }
+
+            AppLog.Info(LogChannel.Game, $"[Battle] weapon {weapon.Def.Name} -> Lv{weapon.Level}");
+            return true;
+        }
+
+        /// <summary>升级被动。</summary>
+        public bool TryUpgradePassive(PassiveInstance passive)
+        {
+            if (passive == null || !passive.TryUpgrade())
+            {
+                return false;
+            }
+
+            AppLog.Info(LogChannel.Game, $"[Battle] passive {passive.Def.Name} -> Lv{passive.Level}");
+            return true;
+        }
+
         /// <summary>找一把当前可进化的武器（宝箱用）。</summary>
         public WeaponInstance FindEvolvable()
         {
@@ -298,11 +322,29 @@ namespace App.Battle
     {
         public WeaponDef Def { get; private set; }
         public int Level { get; private set; } = 1;
-        public float CooldownTimer { get; set; }
+
+        /// <summary>剩余冷却（秒）。只读：推进与重置走下面的三个方法，避免各处直接改造成负值/漏重置。</summary>
+        public float CooldownTimer { get; private set; }
+
         public bool IsMaxLevel => Level >= Def.MaxLevel;
         public bool IsEvolved => Def != null && Def.Id >= 100;
+
+        /// <summary>冷却结束、可以开火。</summary>
+        public bool IsReady => CooldownTimer <= 0f;
+
         public WeaponInstance(WeaponDef def) => Def = def;
-        public bool TryUpgrade()
+
+        /// <summary>每帧推进冷却（允许暂时为负，炮台的“刚开火”判定依赖这一点）。</summary>
+        public void AdvanceCooldown(float deltaTime) => CooldownTimer -= deltaTime;
+
+        /// <summary>开火后按武器冷却重置。</summary>
+        public void ResetCooldown(float seconds) => CooldownTimer = seconds;
+
+        /// <summary>恢复成“立刻可开火”（刚获得武器 / 进化）。</summary>
+        public void ClearCooldown() => CooldownTimer = 0f;
+
+        /// <summary>只允许 BattleSession 调用，升级入口统一走 Session.TryUpgradeWeapon。</summary>
+        internal bool TryUpgrade()
         {
             if (IsMaxLevel)
             {
@@ -313,8 +355,8 @@ namespace App.Battle
             return true;
         }
 
-        /// <summary>进化：直接把定义换成进化后的武器，等级保持满级。</summary>
-        public void Evolve(WeaponDef evolvedDef)
+        /// <summary>进化：直接把定义换成进化后的武器，等级保持满级。只允许 BattleSession 调用。</summary>
+        internal void Evolve(WeaponDef evolvedDef)
         {
             if (evolvedDef == null)
             {
@@ -350,7 +392,8 @@ namespace App.Battle
             }
         }
 
-        public bool TryUpgrade()
+        /// <summary>只允许 BattleSession 调用，升级入口统一走 Session.TryUpgradePassive。</summary>
+        internal bool TryUpgrade()
         {
             if (IsMaxLevel)
             {

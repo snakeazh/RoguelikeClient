@@ -215,7 +215,7 @@ namespace App.Battle
                     break;
 
                 case ChoiceKind.WeaponUpgrade:
-                    FindWeapon(session, option.DefId)?.TryUpgrade();
+                    session.TryUpgradeWeapon(FindWeapon(session, option.DefId));
                     break;
 
                 case ChoiceKind.PassiveNew:
@@ -223,7 +223,7 @@ namespace App.Battle
                     break;
 
                 case ChoiceKind.PassiveUpgrade:
-                    FindPassive(session, option.DefId)?.TryUpgrade();
+                    session.TryUpgradePassive(FindPassive(session, option.DefId));
                     break;
 
                 case ChoiceKind.Heal:

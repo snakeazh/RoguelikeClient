@@ -116,7 +116,7 @@ namespace App.Battle
             if (candidates.Count > 0)
             {
                 var weapon = candidates[Session.Rng.Next(candidates.Count)];
-                weapon.TryUpgrade();
+                Session.TryUpgradeWeapon(weapon);
                 Toast($"宝箱：{weapon.Def.Name} 升到 Lv{weapon.Level}");
                 return;
             }

@@ -260,8 +260,8 @@ namespace App.Battle
 
         private void TickShooter(WeaponInstance weapon, float deltaTime)
         {
-            weapon.CooldownTimer -= deltaTime;
-            if (weapon.CooldownTimer > 0f)
+            weapon.AdvanceCooldown(deltaTime);
+            if (!weapon.IsReady)
             {
                 return;
             }
@@ -270,7 +270,7 @@ namespace App.Battle
             if (target == null)
             {
                 // 没有目标时停在"可开火"状态，出现目标立刻打
-                weapon.CooldownTimer = 0f;
+                weapon.ClearCooldown();
                 return;
             }
 
@@ -288,7 +288,7 @@ namespace App.Battle
                 }
             }
 
-            weapon.CooldownTimer = CooldownOf(weapon);
+            weapon.ResetCooldown(CooldownOf(weapon));
 
             Vector2 origin;
             Vector2 aim;
@@ -332,13 +332,13 @@ namespace App.Battle
 
         private void TickAura(WeaponInstance weapon, float deltaTime)
         {
-            weapon.CooldownTimer -= deltaTime;
-            if (weapon.CooldownTimer > 0f)
+            weapon.AdvanceCooldown(deltaTime);
+            if (!weapon.IsReady)
             {
                 return;
             }
 
-            weapon.CooldownTimer = CooldownOf(weapon);
+            weapon.ResetCooldown(CooldownOf(weapon));
 
             var radius = AreaOf(weapon, weapon.Def.Area);
             var damage = RollDamage(DamageOf(weapon));
@@ -366,8 +366,8 @@ namespace App.Battle
         /// </summary>
         private void TickCleave(WeaponInstance weapon, float deltaTime)
         {
-            weapon.CooldownTimer -= deltaTime;
-            if (weapon.CooldownTimer > 0f)
+            weapon.AdvanceCooldown(deltaTime);
+            if (!weapon.IsReady)
             {
                 return;
             }
@@ -375,11 +375,11 @@ namespace App.Battle
             var player = _runner.Player;
             if (player == null)
             {
-                weapon.CooldownTimer = 0f;
+                weapon.ClearCooldown();
                 return;
             }
 
-            weapon.CooldownTimer = CooldownOf(weapon);
+            weapon.ResetCooldown(CooldownOf(weapon));
 
             var origin = (Vector2)player.transform.position;
             var aim = player.FacingDirection;
@@ -428,8 +428,8 @@ namespace App.Battle
         /// <summary>雷电法典：先打最近的敌人，再在敌人之间跳跃，每次跳伤害衰减。</summary>
         private void TickChain(WeaponInstance weapon, float deltaTime)
         {
-            weapon.CooldownTimer -= deltaTime;
-            if (weapon.CooldownTimer > 0f)
+            weapon.AdvanceCooldown(deltaTime);
+            if (!weapon.IsReady)
             {
                 return;
             }
@@ -437,11 +437,11 @@ namespace App.Battle
             var first = FindNearestEnemy(weapon.Def.Range);
             if (first == null)
             {
-                weapon.CooldownTimer = 0f;
+                weapon.ClearCooldown();
                 return;
             }
 
-            weapon.CooldownTimer = CooldownOf(weapon);
+            weapon.ResetCooldown(CooldownOf(weapon));
 
             var jumps = Mathf.Clamp(1 + CountOf(weapon), 1, 8);
             var chainRadius = Mathf.Max(1.2f, AreaOf(weapon, weapon.Def.Area));
@@ -504,8 +504,8 @@ namespace App.Battle
         /// <summary>定时炸弹：朝敌人脚下抛雷，引信结束后范围爆炸。</summary>
         private void TickBomb(WeaponInstance weapon, float deltaTime)
         {
-            weapon.CooldownTimer -= deltaTime;
-            if (weapon.CooldownTimer > 0f)
+            weapon.AdvanceCooldown(deltaTime);
+            if (!weapon.IsReady)
             {
                 return;
             }
@@ -513,11 +513,11 @@ namespace App.Battle
             var target = FindNearestEnemy(weapon.Def.Range);
             if (target == null)
             {
-                weapon.CooldownTimer = 0f;
+                weapon.ClearCooldown();
                 return;
             }
 
-            weapon.CooldownTimer = CooldownOf(weapon);
+            weapon.ResetCooldown(CooldownOf(weapon));
 
             var count = CountOf(weapon);
             var damage = DamageOf(weapon);
