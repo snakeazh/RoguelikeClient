@@ -21,6 +21,7 @@ namespace App.Battle
             { WeaponKind.Orbit, new OrbitBehavior() },
             { WeaponKind.Chain, new ChainBehavior() },
             { WeaponKind.Bomb, new BombBehavior() },
+            { WeaponKind.Poison, new PoisonBehavior() },
         };
 
         /// <summary>取某个形态的行为；没注册就退化成投掷物并告警，避免新枚举值把整局打崩。</summary>

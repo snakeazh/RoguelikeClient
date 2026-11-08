@@ -55,6 +55,13 @@
     "SlowFactor": 0.6, "DamagePerLevel": 0.3, "CooldownPerLevel": 0.06, "CountPerLevel": 0, "AreaPerLevel": 0.14,
     "PassiveId": 5, "EvolvedId": 108
   },
+  {
+    "Id": 9, "Name": "毒雾瓶", "Description": "朝敌人脚下砸出毒云，毒云持续伤害并减速；可叠加数片。",
+    "Kind": 7, "MaxLevel": 5, "Damage": 7, "Cooldown": 2.4, "Projectiles": 1, "Range": 4.0,
+    "Area": 2.0, "Speed": 0, "Pierce": 0, "Sprite": "aura", "ProjectileRadius": 0.2, "SplashRadius": 0, "Duration": 3.0,
+    "SlowFactor": 0.75, "DamagePerLevel": 0.3, "CooldownPerLevel": 0.06, "CountPerLevel": 0, "AreaPerLevel": 0.14,
+    "PassiveId": 6, "EvolvedId": 0
+  },
 
   {
     "Id": 101, "Name": "穿云弓", "Description": "进化：箭矢贯穿整条直线，并附带贯穿爆炸。",

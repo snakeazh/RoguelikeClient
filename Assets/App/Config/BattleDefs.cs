@@ -24,7 +24,10 @@ namespace App.Config
         Aura = 3,
         Cleave = 4,
         Chain = 5,
-        Bomb = 6
+        Bomb = 6,
+
+        /// <summary>毒雾：在地面留下持续伤害区域（P2-7 的 POC，实现见 <c>PoisonBehavior</c>）。</summary>
+        Poison = 7
     }
 
     public enum PassiveKind
