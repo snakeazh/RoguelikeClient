@@ -18,7 +18,7 @@ namespace App.Battle
             {
                 var offset = Random.insideUnitCircle * 0.6f;
                 enemy.Context.SpawnEnemy(
-                    ChildDefId, (Vector2)enemy.transform.position + offset, EliteAffix.None, enemy.Context.ElapsedSeconds);
+                    ChildDefId, (Vector2)enemy.Position + offset, EliteAffix.None, enemy.Context.ElapsedSeconds);
             }
         }
     }

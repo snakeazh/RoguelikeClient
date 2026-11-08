@@ -22,15 +22,20 @@ namespace App.Battle
     /// - 敌人/弹体/拾取物都是普通 List + 每帧倒序遍历销毁，规模在几百个单位以内足够；
     /// - 流程状态收敛在 <see cref="BattlePhase"/>：只有 Running 推进模拟，升级/暂停/结算都在等面板或玩家。
     /// </summary>
-    public sealed partial class BattleRunner : MonoBehaviour, IBattleContext, IPickupContext
+    public sealed partial class BattleRunner : MonoBehaviour, IBattleContext, IPickupContext, IEnemyContext
     {
         private readonly List<EnemyUnit> _enemies = new List<EnemyUnit>(256);
-        private static readonly List<EnemyUnit> s_enemyBuffer = new List<EnemyUnit>(256);
         private readonly List<ProjectileUnit> _projectiles = new List<ProjectileUnit>(128);
         private readonly List<PickupUnit> _pickups = new List<PickupUnit>(256);
 
         /// <summary>弹体规则（P3-1）：自己持有逻辑状态，<see cref="_projectiles"/> 只负责表现。</summary>
         private readonly ProjectileSystem _projectileSystem = new ProjectileSystem();
+
+        /// <summary>敌人规则（P3-1b）：行为调度 + 位移 + 击退 + Boss 阶段。</summary>
+        private readonly EnemySystem _enemySystem = new EnemySystem();
+
+        /// <summary>接触伤害（P3-1b）：和移动拆开，独立一套冷却与减速。</summary>
+        private readonly ContactSystem _contactSystem = new ContactSystem();
 
         private EnemySpawner _spawner;
         private IEnemyFactory _enemyFactory;

@@ -31,7 +31,7 @@ namespace App.Battle
             var mount = weapon.Def.Mount == 1 ? host.Cannon : null;
             if (mount != null && mount.Exists)
             {
-                var toTarget = (Vector2)target.transform.position;
+                var toTarget = (Vector2)(target as EnemyUnit).Position;
                 // 转到位再开火；最多等 0.6 秒，避免目标一直绕圈时这门炮永远不开火
                 if (!mount.IsAlignedWith(toTarget) && weapon.CooldownTimer > -CannonMount.FireGraceSeconds)
                 {
@@ -43,7 +43,7 @@ namespace App.Battle
 
             var playerPosition = host.PlayerPosition;
             var origin = mount != null && mount.Exists ? mount.MuzzlePosition : playerPosition;
-            var aim = ((Vector2)target.transform.position - origin).normalized;
+            var aim = ((Vector2)(target as EnemyUnit).Position - origin).normalized;
 
             var count = host.CountOf(weapon);
             var spread = count > 1 ? 22f : 0f;

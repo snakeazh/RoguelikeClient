@@ -52,7 +52,7 @@ namespace App.Battle
                     continue;
                 }
 
-                var offset = (Vector2)enemy.transform.position - origin;
+                var offset = (Vector2)enemy.Position - origin;
                 if (offset.magnitude > radius + enemy.Radius)
                 {
                     continue;

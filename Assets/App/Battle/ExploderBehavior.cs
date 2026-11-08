@@ -33,7 +33,7 @@ namespace App.Battle
             }
 
             enemy.Context.ExplodeAt(
-                enemy.transform.position, enemy.Def.ExplodeRadius, DamageInfo.Plain(enemy.Damage), true);
+                enemy.Position, enemy.Def.ExplodeRadius, DamageInfo.Plain(enemy.Damage), true);
             enemy.KillSelf();
         }
 

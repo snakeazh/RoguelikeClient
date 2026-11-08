@@ -39,7 +39,51 @@ namespace App.Battle
 
         public bool PhaseTwoAnnounced;
 
+        /// <summary>
+        /// 击退速度（世界单位/秒）。P3-1b 起由系统推进，表现层不再直接改 transform，
+        /// 这样 headless 跑数值时击退也在场。
+        /// </summary>
+        public Vector2 Knockback;
+
         public bool IsDead => Hp <= 0f;
+
+        /// <summary>当前移速：被减速时打六折（沙漏、毒雾都走这里）。</summary>
+        public float SpeedAt(float elapsed)
+        {
+            return Speed * (elapsed < SlowUntil ? 0.6f : 1f);
+        }
+
+        /// <summary>
+        /// 受击击退：伤害越重推得越远，但有上限，免得一拳飞出屏幕。Boss 体型大，推不动。
+        /// </summary>
+        public void ApplyKnockback(Vector2 source, float amount)
+        {
+            if (IsBoss)
+            {
+                return;
+            }
+
+            var away = Position - source;
+            if (away.sqrMagnitude < 0.0001f)
+            {
+                away = Vector2.up;
+            }
+
+            var strength = Mathf.Clamp(amount / Mathf.Max(1f, MaxHp) * 2.4f, 0.06f, 0.32f);
+            Knockback += away.normalized * strength;
+        }
+
+        /// <summary>每帧推进击退位移（指数衰减，14/s）。</summary>
+        public void TickKnockback(float deltaTime)
+        {
+            if (Knockback.sqrMagnitude <= 0.000001f)
+            {
+                return;
+            }
+
+            Position += Knockback * deltaTime;
+            Knockback *= Mathf.Exp(-14f * deltaTime);
+        }
 
         /// <summary>
         /// 精英词缀：只改数值，不改行为。放大血量时同步把当前血量补满（生成时就是满血）。

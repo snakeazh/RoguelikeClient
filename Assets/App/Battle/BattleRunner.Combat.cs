@@ -20,57 +20,27 @@ namespace App.Battle
         {
             var frozen = Session.Elapsed < _freezeUntil;
 
-            // 敌人 Tick 里会连锁击杀（爆炸、分裂）进而增删 _enemies，所以先拷一份再遍历。
-            s_enemyBuffer.Clear();
-            s_enemyBuffer.AddRange(_enemies);
-            for (var i = 0; i < s_enemyBuffer.Count; i++)
-            {
-                var enemy = s_enemyBuffer[i];
-                if (enemy == null || enemy.IsDead)
-                {
-                    continue;
-                }
-
-                if (!frozen)
-                {
-                    enemy.Tick(deltaTime, Player);
-                    TickContact(enemy);
-                }
-            }
+            // 规则层：行为调度 + 位移 + 击退 + Boss 阶段，然后单独跑接触伤害。
+            _enemySystem.Tick(deltaTime, this, _enemies, frozen);
+            _contactSystem.Tick(deltaTime, this, _enemies);
 
             for (var i = _enemies.Count - 1; i >= 0; i--)
             {
-                if (_enemies[i] == null || _enemies[i].IsDead)
+                var enemy = _enemies[i];
+                if (enemy == null || enemy.IsDead)
                 {
                     _enemies.RemoveAt(i);
                 }
             }
-        }
 
-        private void TickContact(EnemyUnit enemy)
-        {
-            if (Player == null || enemy.IsDead)
+            // 表现层：只把状态同步到 Transform，不参与任何判定。
+            for (var i = 0; i < _enemies.Count; i++)
             {
-                return;
-            }
-
-            var distance = Vector2.Distance(enemy.transform.position, Player.transform.position);
-            if (distance > enemy.Radius + PlayerUnit.Radius)
-            {
-                return;
-            }
-
-            if (Session.Elapsed < enemy.NextContactTime)
-            {
-                return;
-            }
-
-            enemy.NextContactTime = Session.Elapsed + 0.5f;
-            DamagePlayer(enemy.Damage);
-
-            if (enemy.Def.SlowOnHit > 0f)
-            {
-                Player.ApplySlow(enemy.Def.SlowOnHit);
+                var enemy = _enemies[i];
+                if (enemy != null)
+                {
+                    enemy.SyncFromState(deltaTime, Player);
+                }
             }
         }
 

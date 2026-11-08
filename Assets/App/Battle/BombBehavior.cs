@@ -45,7 +45,7 @@ namespace App.Battle
             var radius = Mathf.Max(
                 0.6f,
                 host.AreaOf(weapon, weapon.Def.SplashRadius > 0f ? weapon.Def.SplashRadius : weapon.Def.Area));
-            var center = (Vector2)target.transform.position;
+            var center = (Vector2)(target as EnemyUnit).Position;
 
             for (var i = 0; i < count; i++)
             {
@@ -113,7 +113,7 @@ namespace App.Battle
                         continue;
                     }
 
-                    if (Vector2.Distance(position, enemy.transform.position) <= bomb.Radius + enemy.Radius)
+                    if (Vector2.Distance(position, enemy.Position) <= bomb.Radius + enemy.Radius)
                     {
                         host.Context.DamageEnemy(enemy, bomb.Damage);
                     }

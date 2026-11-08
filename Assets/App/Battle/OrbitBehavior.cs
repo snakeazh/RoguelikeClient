@@ -56,7 +56,7 @@ namespace App.Battle
                         continue;
                     }
 
-                    if (Vector2.Distance(position, enemy.transform.position) <= weapon.Def.Area + enemy.Radius)
+                    if (Vector2.Distance(position, enemy.Position) <= weapon.Def.Area + enemy.Radius)
                     {
                         enemy.NextBladeHitTime = now + HitCooldown;
                         host.Context.DamageEnemy(enemy, damage);

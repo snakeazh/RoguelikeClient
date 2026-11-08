@@ -14,9 +14,8 @@ namespace App.Battle
         private SpriteRenderer _shadow;
         private readonly ScriptedInput _input = new ScriptedInput();
 
-        // 受击反馈：闪白计时（1 → 0）、被击退的速度、贴图原始缩放与颜色
+        // 受击反馈：闪白计时（1 → 0）、贴图原始缩放与颜色
         private float _flash;
-        private Vector2 _knockback;
         private Vector3 _bodyScale = Vector3.one;
         private Color _bodyColor = Color.white;
 
@@ -32,6 +31,9 @@ namespace App.Battle
         public bool IsElite => State.IsElite;
         public EliteAffix Affix => State.Affix;
         public bool IsDead => State.IsDead;
+
+        /// <summary>权威位置（<see cref="State.Position"/>）；表现层的 Transform 每帧跟随它。</summary>
+        internal Vector2 Position => State.Position;
 
         /// <summary>接触伤害冷却（0.5 秒一跳）。</summary>
         public float NextContactTime
@@ -137,31 +139,18 @@ namespace App.Battle
         }
 
         /// <summary>
-        /// 受击表现：闪白 + 被击退 + 缩放回弹。
-        /// Boss 不击退（体型大、推不动），免得被玩家一直顶在原地抽搐。
+        /// 受击表现：闪白 + 缩放回弹。击退是逻辑，交给 <see cref="EnemyState.ApplyKnockback"/>，
+        /// 由 <see cref="EnemySystem"/> 每帧推进，表现层不再直接改 transform（否则 headless 就没有击退）。
         /// </summary>
         private void PlayHitFeedback(float amount)
         {
             _flash = 1f;
 
-            if (IsBoss)
-            {
-                return;
-            }
-
             var source = _runner != null && _runner.Player != null
                 ? (Vector2)_runner.Player.transform.position
-                : (Vector2)transform.position - Vector2.up;
+                : State.Position - Vector2.up;
 
-            var away = (Vector2)transform.position - source;
-            if (away.sqrMagnitude < 0.0001f)
-            {
-                away = Random.insideUnitCircle.normalized;
-            }
-
-            // 伤害越重推得越远，但有上限，免得一拳飞出屏幕。
-            var strength = Mathf.Clamp(amount / Mathf.Max(1f, MaxHp) * 2.4f, 0.06f, 0.32f);
-            _knockback += away.normalized * strength;
+            State.ApplyKnockback(source, amount);
         }
 
         /// <summary>改基础颜色（自爆怪引信变红等），闪白结束后会回到这个颜色。</summary>
@@ -170,55 +159,32 @@ namespace App.Battle
             _bodyColor = color;
         }
 
-        public void Tick(float deltaTime, PlayerUnit player)
+        /// <summary>
+        /// 表现层每帧同步：位置跟随状态，然后推进受击表现、朝向与排序。
+        /// 规则（行为、位移、击退、Boss 阶段、接触伤害）全在 <see cref="EnemySystem"/> / <see cref="ContactSystem"/>。
+        /// </summary>
+        public void SyncFromState(float deltaTime, PlayerUnit player)
         {
-            if (IsDead || player == null)
+            if (IsDead)
             {
                 return;
             }
+
+            transform.position = State.Position;
 
             TickHitFeedback(deltaTime);
 
-            // 行动规则交给策略（P2-3），策略只写「这帧想往哪走」，位移由单位统一应用。
-            EnemyBehaviors.Get(Def.Behavior).Tick(this, player, deltaTime);
-            ApplyMovement(deltaTime);
-
-            if (IsBoss)
+            if (player != null)
             {
-                TickBoss(deltaTime);
+                FaceDirection(deltaTime, DirectionTo(player));
             }
 
-            FaceDirection(deltaTime, DirectionTo(player));
             ApplySortOrder();
-
-            // 击退会直接改 transform，这里统一回写成状态（P3-1b 会把方向反过来：状态权威、表现跟随）
-            State.Position = transform.position;
-        }
-
-        /// <summary>
-        /// 把本帧输入方向换算成位移：所有敌人都走同一条路（移速、减速、地图夹取），
-        /// 行为本身不再直接改 transform。
-        /// </summary>
-        private void ApplyMovement(float deltaTime)
-        {
-            var move = _input.Move;
-            _input.Set(Vector2.zero);
-            if (move.sqrMagnitude <= 0.0001f)
-            {
-                return;
-            }
-
-            var next = (Vector2)transform.position + move * (CurrentSpeed * deltaTime);
-            State.Position = BattleMap.ClampToWalkable(next, State.Radius);
-            transform.position = State.Position;
         }
 
         // ---------- 策略需要的单位数据（策略本身无状态，见 IEnemyBehavior 注释） ----------
 
         internal IBattleContext Context => _runner;
-
-        /// <summary>当前移速（含减速效果）。</summary>
-        internal float CurrentSpeed => State.Speed * (Context.ElapsedSeconds < State.SlowUntil ? 0.6f : 1f);
 
         /// <summary>法术/远程攻击计时器。</summary>
         internal float AttackTimer
@@ -246,18 +212,26 @@ namespace App.Battle
 
         internal Vector2 DirectionTo(PlayerUnit player)
         {
-            var offset = (Vector2)(player.transform.position - transform.position);
+            var offset = (Vector2)player.transform.position - State.Position;
             var distance = offset.magnitude;
             return distance > 0.001f ? offset / distance : Vector2.zero;
         }
 
         internal float DistanceTo(PlayerUnit player)
         {
-            return Vector2.Distance(transform.position, player.transform.position);
+            return Vector2.Distance(State.Position, player.transform.position);
         }
 
-        /// <summary>本帧往哪走（长度 0..1，位移由 <see cref="ApplyMovement"/> 统一换算）。</summary>
+        /// <summary>本帧往哪走（长度 0..1）；系统取走它并清空，位移由 <see cref="EnemySystem"/> 统一换算。</summary>
         internal ScriptedInput Input => _input;
+
+        /// <summary>取走本帧移动意图（行为写入的通道），取走即清零。</summary>
+        internal Vector2 TakeMoveIntent()
+        {
+            var move = _input.Move;
+            _input.Set(Vector2.zero);
+            return move;
+        }
 
         /// <summary>朝玩家走一步。</summary>
         internal void MoveToward(PlayerUnit player)
@@ -284,7 +258,7 @@ namespace App.Battle
 
         internal void FireProjectile(Vector2 direction)
         {
-            _runner.SpawnEnemyProjectile(transform.position, direction, Def.ProjectileSpeed, State.Damage);
+            _runner.SpawnEnemyProjectile(State.Position, direction, Def.ProjectileSpeed, State.Damage);
         }
 
         /// <summary>
@@ -304,7 +278,8 @@ namespace App.Battle
         }
 
         /// <summary>
-        /// 受击表现的每帧推进：闪白衰减、按闪白程度压回基础色、缩放回弹、击退位移衰减。
+        /// 受击表现的每帧推进：闪白衰减、按闪白程度压回基础色、缩放回弹。
+        /// （击退位移在 <see cref="EnemyState.TickKnockback"/> 里，由系统推进。）
         /// </summary>
         private void TickHitFeedback(float deltaTime)
         {
@@ -322,45 +297,6 @@ namespace App.Battle
 
             // 受击瞬间鼓一下再弹回，比单纯变色更容易被看见
             _body.transform.localScale = _bodyScale * (1f + _flash * 0.14f);
-
-            if (_knockback.sqrMagnitude > 0.000001f)
-            {
-                transform.position += (Vector3)(_knockback * deltaTime);
-                _knockback *= Mathf.Exp(-14f * deltaTime);
-            }
-        }
-
-        private void TickBoss(float deltaTime)
-        {
-            // 阶段二：50% 血量后狂暴（移速 + 弹幕）
-            if (Hp > MaxHp * 0.5f)
-            {
-                return;
-            }
-
-            State.Speed = Def.Speed * 1.35f;
-            State.AttackTimer -= deltaTime;
-            if (State.AttackTimer > 0f)
-            {
-                return;
-            }
-
-            State.AttackTimer = 3f;
-            const int count = 12;
-            for (var i = 0; i < count; i++)
-            {
-                var angle = i * Mathf.PI * 2f / count + Context.ElapsedSeconds;
-                var dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-                _runner.SpawnEnemyProjectile(transform.position, dir, Def.ProjectileSpeed, State.Damage * 0.6f);
-            }
-
-            if (State.PhaseTwoAnnounced)
-            {
-                return;
-            }
-
-            _runner.Toast("Boss 进入第二阶段！");
-            State.PhaseTwoAnnounced = true;
         }
 
         /// <summary>移除自身（掉落与计数由 BattleRunner 结算）。</summary>

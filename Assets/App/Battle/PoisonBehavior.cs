@@ -56,7 +56,7 @@ namespace App.Battle
             }
 
             weapon.ResetCooldown(host.CooldownOf(weapon));
-            SpawnCloud(host, weapon, target.transform.position, clouds);
+            SpawnCloud(host, weapon, (target as EnemyUnit).Position, clouds);
         }
 
         public void Dispose(WeaponRuntime host, WeaponInstance weapon)
@@ -188,7 +188,7 @@ namespace App.Battle
                     continue;
                 }
 
-                if (Vector2.Distance(center, enemy.transform.position) > cloud.Radius + enemy.Radius)
+                if (Vector2.Distance(center, enemy.Position) > cloud.Radius + enemy.Radius)
                 {
                     continue;
                 }

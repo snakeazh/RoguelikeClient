@@ -58,6 +58,12 @@ namespace App.Battle
         {
             _freezeUntil = Session.Elapsed + Mathf.Max(0f, seconds);
         }
+
+        // ---------- IEnemyContext ----------
+        public void ApplySlowToPlayer(float duration)
+        {
+            Player?.ApplySlow(duration);
+        }
         public void GrantChest()
         {
             // 1) 有满足条件的武器先进化（满级武器 + 配套被动满级）。
