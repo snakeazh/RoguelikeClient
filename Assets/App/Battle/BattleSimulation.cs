@@ -21,7 +21,7 @@ namespace App.Battle
         private readonly ContactSystem _contactSystem = new ContactSystem();
         private readonly ProjectileSystem _projectiles = new ProjectileSystem();
         private readonly PickupSystem _pickups;
-        private readonly SpawnSystem _spawns = new SpawnSystem();
+        private readonly SpawnSystem _spawns;
 
         /// <summary>敌人状态列表：模拟层唯一权威，表现层只读它来维护视图。</summary>
         private readonly List<EnemyState> _enemies = new List<EnemyState>(256);
@@ -37,6 +37,7 @@ namespace App.Battle
             Session = session;
             Player = new PlayerState { Position = playerStart };
             Spawner = new EnemySpawner(waves, waveDefs);
+            _spawns = new SpawnSystem(session.Rng);
             _pickups = new PickupSystem(pickupEffects);
         }
 

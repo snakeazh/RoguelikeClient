@@ -109,7 +109,7 @@ namespace App.Battle
         /// </summary>
         public DamageInfo RollDamage(float damage)
         {
-            var crit = _session.CritChance > 0f && Random.value < _session.CritChance;
+            var crit = _session.CritChance > 0f && _session.Rng.NextDouble() < _session.CritChance;
             return new DamageInfo(crit ? damage * 2f : damage, crit);
         }
 

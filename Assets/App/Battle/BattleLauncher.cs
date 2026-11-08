@@ -47,6 +47,15 @@ namespace App.Battle
         /// </summary>
         public int NextSeed { get; set; }
 
+        /// <summary>
+        /// 下一局的固定步长（0 = 真实帧时间）。必须在 <see cref="BattleRunner.Begin"/> 之前设好：
+        /// 开局头几帧如果用的是真实 deltaTime，同种子两局也会分叉。
+        /// </summary>
+        public float NextFixedStep { get; set; }
+
+        /// <summary>下一局的模拟倍速（0 表示 1 倍）。同样要在 <see cref="BattleRunner.Begin"/> 之前设好。</summary>
+        public float NextSimulationSpeed { get; set; }
+
         public bool IsRunning => Runner != null;
 
         public async Task StartAsync()
@@ -70,7 +79,12 @@ namespace App.Battle
                 var go = new GameObject("Battle");
                 var runner = go.AddComponent<BattleRunner>();
                 Runner = runner;
-                runner.Begin(_ui, OnBattleExit, NextSeed, _characters.SelectedId, _records);
+                runner.FixedStepSeconds = NextFixedStep;
+            if (NextSimulationSpeed > 0f)
+            {
+                runner.SimulationSpeed = NextSimulationSpeed;
+            }
+            runner.Begin(_ui, OnBattleExit, NextSeed, _characters.SelectedId, _records);
 
                 await _ui.Open(new BattleHudViewModel(runner));
                 AppLog.Info(LogChannel.Game, "[Battle] launcher started");

@@ -171,6 +171,8 @@ namespace App.EditorTools
                 var home = AppServices.Resolve<App.UI.Home.HomeViewModel>();
                 var launcher = AppServices.Resolve<App.Battle.BattleLauncher>();
                 launcher.NextSeed = SessionState.GetInt(SeedKey, 0);
+                launcher.NextFixedStep = SessionState.GetBool(FixedStepKey, false) ? 1f / 60f : 0f;
+                launcher.NextSimulationSpeed = SessionState.GetFloat(SpeedKey, DefaultSpeed);
                 home.StartBattleCommand.Execute();
 
                 for (var i = 0; i < 300 && launcher.Runner == null; i++)
@@ -186,11 +188,6 @@ namespace App.EditorTools
                 }
 
                 runner.AutoPlay = true;
-                runner.SimulationSpeed = SessionState.GetFloat(SpeedKey, DefaultSpeed);
-                if (SessionState.GetBool(FixedStepKey, false))
-                {
-                    runner.FixedStepSeconds = 1f / 60f;
-                }
 
                 Debug.Log(
                     $"[BattleSmokeTest] battle started via Home.StartBattleCommand (seed={launcher.NextSeed}, fixedStep={runner.FixedStepSeconds > 0f})");

@@ -30,6 +30,12 @@ namespace App.Battle
             SyncFromState();
         }
 
+        /// <summary>放回池子前解绑：不保留对已结束状态的引用。</summary>
+        public void ClearState()
+        {
+            State = null;
+        }
+
         /// <summary>逻辑帧结束后调用：位置 + 朝向。</summary>
         public void SyncFromState()
         {

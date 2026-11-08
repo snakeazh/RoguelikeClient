@@ -12,6 +12,13 @@ namespace App.Battle
     /// </summary>
     public sealed class SpawnSystem
     {
+        private readonly System.Random _rng;
+
+        public SpawnSystem(System.Random rng)
+        {
+            _rng = rng;
+        }
+
         /// <summary>每分钟血量成长（与改版前 `EnemySpawner.HpScale` 完全一致）。</summary>
         public const float HpGrowthPerMinute = 0.4f;
 
@@ -57,7 +64,7 @@ namespace App.Battle
             return Create(def, position, EliteAffix.None, 1f, 1f, walkable, 0.5f);
         }
 
-        private static EnemyState Create(
+        private EnemyState Create(
             EnemyDef def,
             Vector2 position,
             EliteAffix affix,
@@ -80,7 +87,7 @@ namespace App.Battle
                 Damage = def.Damage * damageScale,
                 Radius = def.Radius,
                 AttackTimer = def.AttackInterval,
-                WanderAngle = Random.value * Mathf.PI * 2f,
+                WanderAngle = _rng.NextFloat(0f, Mathf.PI * 2f),
                 Position = position
             };
 

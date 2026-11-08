@@ -77,12 +77,12 @@ namespace App.Battle
 
             // 金币 / 小蛋糕掉落
             var luck = Session.Luck;
-            if (UnityEngine.Random.value < 0.08f + luck * 0.002f)
+            if (Session.Rng.NextDouble() < 0.08f + luck * 0.002f)
             {
-                SpawnPickup(5, 10, position + UnityEngine.Random.insideUnitCircle * 0.2f);
+                SpawnPickup(5, 10, position + Session.Rng.NextInsideUnitCircle() * 0.2f);
             }
 
-            if (UnityEngine.Random.value < 0.04f)
+            if (Session.Rng.NextDouble() < 0.04f)
             {
                 SpawnPickup(4, 0, position);
             }
@@ -90,9 +90,9 @@ namespace App.Battle
             if (enemy.IsElite)
             {
                 SpawnPickup(5, 25, position);
-                if (UnityEngine.Random.value < 0.35f)
+                if (Session.Rng.NextDouble() < 0.35f)
                 {
-                    SpawnPickup(6, 0, position + UnityEngine.Random.insideUnitCircle * 0.3f);
+                    SpawnPickup(6, 0, position + Session.Rng.NextInsideUnitCircle() * 0.3f);
                 }
             }
 
@@ -104,7 +104,7 @@ namespace App.Battle
             {
                 for (var i = 0; i < 2; i++)
                 {
-                    var offset = UnityEngine.Random.insideUnitCircle * 0.6f;
+                    var offset = Session.Rng.NextInsideUnitCircle() * 0.6f;
                     SpawnEnemy(8, position + offset, EliteAffix.None, Session.Elapsed);
                 }
             }
@@ -208,20 +208,14 @@ namespace App.Battle
             var state = _simulation.SpawnPlayerProjectile(
                 position, direction, speed, damage, radius, pierce, splash, life, homingTarget);
 
-            var go = BattleVisuals.Spawn(BattleVisuals.ProjectilePrefab, "Projectile", transform);
-            var projectile = go.AddComponent<ProjectileUnit>();
-            projectile.Init(state, spriteKey);
-            _projectiles.Add(projectile);
+            _projectiles.Add(_projectileViews.Rent(state, spriteKey, "Projectile"));
         }
 
         public void SpawnEnemyProjectile(Vector3 position, Vector2 direction, float speed, float damage)
         {
             var state = _simulation.SpawnEnemyProjectile(position, direction, speed, damage, 0.16f);
 
-            var go = BattleVisuals.Spawn(BattleVisuals.ProjectilePrefab, "EnemyProjectile", transform);
-            var projectile = go.AddComponent<ProjectileUnit>();
-            projectile.Init(state, "Battle/Sprites/proj_enemy");
-            _projectiles.Add(projectile);
+            _projectiles.Add(_projectileViews.Rent(state, "Battle/Sprites/proj_enemy", "EnemyProjectile"));
         }
 
         /// <summary>经验成长系数：0 分钟 1 倍，每分钟 +1.8 倍（5 分钟约 10 倍）。</summary>
@@ -240,7 +234,7 @@ namespace App.Battle
             }
 
             var state = _simulation.SpawnPickup(def, amount, position);
-            _pickups.Add(_pickupFactory.Create(state));
+            _pickups.Add(_pickupViews.Rent(state));
         }
 
         public void DropRestPickups()

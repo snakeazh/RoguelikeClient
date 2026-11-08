@@ -10,6 +10,9 @@ namespace App.Battle
     /// </summary>
     public interface IEnemyContext
     {
+        /// <summary>逻辑专用随机源（与表现层的 `UnityEngine.Random` 分开，保证同种子可复现）。</summary>
+        System.Random Rng { get; }
+
         /// <summary>玩家当前坐标（权威位置来自 <c>PlayerState.Position</c>）。</summary>
         Vector2 PlayerPosition { get; }
 

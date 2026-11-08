@@ -71,10 +71,7 @@ namespace App.Battle
                 if (projectile == null || projectile.State == null || projectile.State.Dead)
                 {
                     _projectiles.RemoveAt(i);
-                    if (projectile != null)
-                    {
-                        Destroy(projectile.gameObject);
-                    }
+                    _projectileViews.Return(projectile);
 
                     continue;
                 }

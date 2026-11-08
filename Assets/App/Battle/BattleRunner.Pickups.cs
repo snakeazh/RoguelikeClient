@@ -24,10 +24,7 @@ namespace App.Battle
                 if (pickup == null || pickup.State == null || pickup.State.Done)
                 {
                     _pickups.RemoveAt(i);
-                    if (pickup != null)
-                    {
-                        Destroy(pickup.gameObject);
-                    }
+                    _pickupViews.Return(pickup);
 
                     continue;
                 }
@@ -38,6 +35,9 @@ namespace App.Battle
 
         // ---------- IPickupContext ----------
         public Vector3 PlayerPosition => Player != null ? Player.transform.position : Vector3.zero;
+
+        /// <summary>逻辑随机源：与表现层共用的 `UnityEngine.Random` 分开，保证同种子可复现。</summary>
+        public System.Random Rng => Session != null ? Session.Rng : null;
 
         public IReadOnlyList<PickupState> ActivePickups => _simulation != null ? _simulation.ActivePickups : EmptyPickups;
 

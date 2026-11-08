@@ -32,7 +32,8 @@ namespace App.Battle
 
 
         private IEnemyFactory _enemyFactory;
-        private IPickupFactory _pickupFactory;
+        private ProjectileViewPool _projectileViews;
+        private PickupViewPool _pickupViews;
 
         /// <summary>战斗编排者（P3-1b 第 5 步）：持有玩家/刷怪/敌人/接触/弹体/拾取，Runner 只管表现与流程。</summary>
         private BattleSimulation _simulation;
@@ -139,9 +140,7 @@ namespace App.Battle
             _records = records;
             Session = new BattleSession(seed);
 
-            // 战斗里的随机（暴击、抛雷偏移、分裂落点）走 UnityEngine.Random 全局流；
-            // 定种子才能让同一局重放出同样的结果（P3 headless 回归的前提）。
-            UnityEngine.Random.InitState(seed != 0 ? seed : Environment.TickCount);
+            // 战斗随机全部走 Session.Rng（种子在这里生效）；表现层才用 UnityEngine.Random。
 
             // 角色：决定血量、移速和本命武器；缺表时 SetCharacter 不生效，退回 100 血 / 5 速 / 长弓。
             var character = CharacterDef.Get(characterId > 0 ? characterId : BattleSession.DefaultCharacterId);
@@ -190,7 +189,8 @@ namespace App.Battle
 
             // 生成器：敌人/拾取物各自一个工厂（MonoBehaviour 不能用构造器），波次策略按默认注册表注入。
             _enemyFactory = new EnemyFactory(this, transform);
-            _pickupFactory = new PickupFactory(transform);
+            _projectileViews = new ProjectileViewPool(transform);
+            _pickupViews = new PickupViewPool(transform);
 
             // 规则层由 BattleSimulation 组合：玩家位移 / 刷怪 / 敌人 / 接触 / 弹体 / 拾取。
             _simulation = new BattleSimulation(
@@ -342,26 +342,8 @@ namespace App.Battle
 
             _enemyViews.Clear();
 
-            foreach (var projectile in _projectiles)
-            {
-                if (projectile != null)
-                {
-                    Destroy(projectile.gameObject);
-                }
-            }
-
-            _projectiles.Clear();
-            _simulation?.ClearTransients();
-
-            foreach (var pickup in _pickups)
-            {
-                if (pickup != null)
-                {
-                    Destroy(pickup.gameObject);
-                }
-            }
-
-            _pickups.Clear();
+            _projectileViews.ReturnAll(_projectiles);
+            _pickupViews.ReturnAll(_pickups);
             _simulation?.ClearTransients();
 
             _weapons?.Dispose();

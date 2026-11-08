@@ -50,8 +50,8 @@ namespace App.Battle
             for (var i = 0; i < count; i++)
             {
                 var offset = count > 1
-                    ? Random.insideUnitCircle * 0.9f
-                    : Random.insideUnitCircle * 0.25f;
+                    ? host.Session.Rng.NextInsideUnitCircle() * 0.9f
+                    : host.Session.Rng.NextInsideUnitCircle() * 0.25f;
                 var position = center + offset;
 
                 var bombGo = new GameObject("Bomb");

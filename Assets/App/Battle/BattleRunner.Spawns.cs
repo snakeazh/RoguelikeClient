@@ -44,7 +44,7 @@ namespace App.Battle
 
             for (var attempt = 0; attempt < 10; attempt++)
             {
-                var angle = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
+                var angle = Session.Rng.NextFloat(0f, Mathf.PI * 2f);
                 var dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
 
                 // 射线与可视矩形边界的交点距离（取 x/y 两方向里更近的那个）。
@@ -72,18 +72,18 @@ namespace App.Battle
             }
 
             // 兜底：从地图边缘随机取一点（地图比屏幕大，边缘一定在视野外）。
-            var edge = UnityEngine.Random.Range(0, 4);
+            var edge = Session.Rng.Next(4);
             var bounds = _walkable;
             switch (edge)
             {
                 case 0:
-                    return new Vector2(UnityEngine.Random.Range(bounds.xMin, bounds.xMax), bounds.yMax - 0.5f);
+                    return new Vector2(Session.Rng.NextFloat(bounds.xMin, bounds.xMax), bounds.yMax - 0.5f);
                 case 1:
-                    return new Vector2(bounds.xMax - 0.5f, UnityEngine.Random.Range(bounds.yMin, bounds.yMax));
+                    return new Vector2(bounds.xMax - 0.5f, Session.Rng.NextFloat(bounds.yMin, bounds.yMax));
                 case 2:
-                    return new Vector2(UnityEngine.Random.Range(bounds.xMin, bounds.xMax), bounds.yMin + 0.5f);
+                    return new Vector2(Session.Rng.NextFloat(bounds.xMin, bounds.xMax), bounds.yMin + 0.5f);
                 default:
-                    return new Vector2(bounds.xMin + 0.5f, UnityEngine.Random.Range(bounds.yMin, bounds.yMax));
+                    return new Vector2(bounds.xMin + 0.5f, Session.Rng.NextFloat(bounds.yMin, bounds.yMax));
             }
         }
 
@@ -95,7 +95,8 @@ namespace App.Battle
         private System.Collections.IEnumerator TideRoutine(WaveDef wave)
         {
             Toast("怪物潮来袭！");
-            var waves = Mathf.Max(1, Mathf.RoundToInt(wave.Duration / Mathf.Max(0.2f, wave.Interval)));
+            var interval = Mathf.Max(0.2f, wave.Interval);
+            var waves = Mathf.Max(1, Mathf.RoundToInt(wave.Duration / interval));
             for (var i = 0; i < waves; i++)
             {
                 for (var j = 0; j < wave.SpawnCount; j++)
@@ -103,7 +104,13 @@ namespace App.Battle
                     SpawnEnemy(wave.EnemyId, RandomSpawnPosition(), wave.Affix, Session.Elapsed);
                 }
 
-                yield return new WaitForSeconds(wave.Interval);
+                // 用会话虚拟时钟等间隔（而不是 WaitForSeconds）：否则怪物潮的节奏会跟真实帧率绑定，
+                // 同种子两局跑出来的波次内容就不一样了。
+                var nextAt = Session.Elapsed + interval;
+                while (Phase == BattlePhase.Running && Session.Elapsed < nextAt)
+                {
+                    yield return null;
+                }
             }
         }
 

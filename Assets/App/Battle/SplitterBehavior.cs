@@ -16,7 +16,7 @@ namespace App.Battle
         {
             for (var i = 0; i < ChildCount; i++)
             {
-                var offset = Random.insideUnitCircle * 0.6f;
+                var offset = context.Rng.NextInsideUnitCircle() * 0.6f;
                 context.SpawnEnemy(
                     ChildDefId, state.Position + offset, EliteAffix.None, context.ElapsedSeconds);
             }
