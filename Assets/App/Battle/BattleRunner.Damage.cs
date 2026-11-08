@@ -97,7 +97,7 @@ namespace App.Battle
             }
 
             // 行为自带的分裂（分裂怪）：策略自己决定生几只、什么属性
-            EnemyBehaviors.Get(def.Behavior).OnDeath(enemy, this);
+            EnemyBehaviors.Get(enemy).OnDeath(enemy, this);
 
             // 精英词缀的分裂：任何怪带上 Split 词缀都会分裂，与行为无关
             if (enemy.Affix == EliteAffix.Split)

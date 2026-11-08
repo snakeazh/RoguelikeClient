@@ -25,6 +25,17 @@ namespace App.Battle
 
         private static readonly IEnemyBehavior Fallback = new ChaserBehavior();
 
+        /// <summary>每种走位对应的 Boss 版本（装饰器），按需创建一次，避免每帧 new。</summary>
+        private static readonly Dictionary<IEnemyBehavior, IEnemyBehavior> BossVariants =
+            new Dictionary<IEnemyBehavior, IEnemyBehavior>();
+
+        /// <summary>取这只怪本帧该用的行为：Boss 在自身走位之上叠一层二阶段。</summary>
+        public static IEnemyBehavior Get(EnemyState state)
+        {
+            var movement = Get(state.Def.Behavior);
+            return state.IsBoss ? BossOf(movement) : movement;
+        }
+
         public static IEnemyBehavior Get(EnemyBehavior behavior)
         {
             if (Map.TryGetValue(behavior, out var strategy))
@@ -34,6 +45,18 @@ namespace App.Battle
 
             Debug.LogWarning("[Enemy] no behavior registered for " + behavior + ", falling back to Chaser.");
             return Fallback;
+        }
+
+        private static IEnemyBehavior BossOf(IEnemyBehavior movement)
+        {
+            if (BossVariants.TryGetValue(movement, out var boss))
+            {
+                return boss;
+            }
+
+            boss = new BossBehavior(movement);
+            BossVariants.Add(movement, boss);
+            return boss;
         }
     }
 }
