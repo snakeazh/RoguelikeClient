@@ -203,17 +203,23 @@ namespace App.Battle
             EnemyUnit homingTarget = null,
             string spriteKey = null)
         {
+            var homingId = homingTarget != null ? homingTarget.GetInstanceID() : 0;
+            var state = _projectileSystem.SpawnPlayer(
+                position, direction, speed, damage, radius, pierce, splash, life, 0f, homingId);
+
             var go = BattleVisuals.Spawn(BattleVisuals.ProjectilePrefab, "Projectile", transform);
             var projectile = go.AddComponent<ProjectileUnit>();
-            projectile.InitPlayer(position, direction, speed, damage, radius, pierce, splash, life, 0f, homingTarget, spriteKey);
+            projectile.Init(state, spriteKey);
             _projectiles.Add(projectile);
         }
 
         public void SpawnEnemyProjectile(Vector3 position, Vector2 direction, float speed, float damage)
         {
+            var state = _projectileSystem.SpawnEnemy(position, direction, speed, damage, 0.16f);
+
             var go = BattleVisuals.Spawn(BattleVisuals.ProjectilePrefab, "EnemyProjectile", transform);
             var projectile = go.AddComponent<ProjectileUnit>();
-            projectile.InitEnemy(position, direction, speed, damage, 0.16f);
+            projectile.Init(state, "Battle/Sprites/proj_enemy");
             _projectiles.Add(projectile);
         }
 

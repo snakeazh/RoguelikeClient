@@ -29,6 +29,9 @@ namespace App.Battle
         private readonly List<ProjectileUnit> _projectiles = new List<ProjectileUnit>(128);
         private readonly List<PickupUnit> _pickups = new List<PickupUnit>(256);
 
+        /// <summary>弹体规则（P3-1）：自己持有逻辑状态，<see cref="_projectiles"/> 只负责表现。</summary>
+        private readonly ProjectileSystem _projectileSystem = new ProjectileSystem();
+
         private EnemySpawner _spawner;
         private IEnemyFactory _enemyFactory;
         private IPickupFactory _pickupFactory;
@@ -331,6 +334,7 @@ namespace App.Battle
             }
 
             _projectiles.Clear();
+            _projectileSystem.Clear();
 
             foreach (var pickup in _pickups)
             {

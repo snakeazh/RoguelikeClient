@@ -75,22 +75,30 @@ namespace App.Battle
         }
 
         // ---------- 弹体 ----------
+        /// <summary>先让规则层推进所有弹体，再让表现层跟着状态走（表现不参与命中判定）。</summary>
         private void TickProjectiles(float deltaTime)
+        {
+            _projectileSystem.Tick(deltaTime, this);
+            SyncProjectileViews();
+        }
+
+        private void SyncProjectileViews()
         {
             for (var i = _projectiles.Count - 1; i >= 0; i--)
             {
                 var projectile = _projectiles[i];
-                if (projectile == null)
+                if (projectile == null || projectile.State == null || projectile.State.Dead)
                 {
                     _projectiles.RemoveAt(i);
+                    if (projectile != null)
+                    {
+                        Destroy(projectile.gameObject);
+                    }
+
                     continue;
                 }
 
-                if (projectile.Tick(deltaTime, this))
-                {
-                    _projectiles.RemoveAt(i);
-                    Destroy(projectile.gameObject);
-                }
+                projectile.SyncFromState();
             }
         }
     }
