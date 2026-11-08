@@ -70,28 +70,28 @@ namespace App.Battle
             if (def.Exp > 0)
             {
                 var exp = Mathf.Max(1, Mathf.RoundToInt(def.Exp * ExpScale()));
-                var kind = exp >= 20 ? PickupKind.ExpLarge : exp >= 5 ? PickupKind.ExpMedium : PickupKind.ExpSmall;
-                SpawnPickup(kind, exp, position);
+                var defId = exp >= 20 ? 3 : exp >= 5 ? 2 : 1;
+                SpawnPickup(defId, exp, position);
             }
 
             // 金币 / 小蛋糕掉落
             var luck = Session.Luck;
             if (UnityEngine.Random.value < 0.08f + luck * 0.002f)
             {
-                SpawnPickup(PickupKind.Gold, 10, position + UnityEngine.Random.insideUnitCircle * 0.2f);
+                SpawnPickup(5, 10, position + UnityEngine.Random.insideUnitCircle * 0.2f);
             }
 
             if (UnityEngine.Random.value < 0.04f)
             {
-                SpawnPickup(PickupKind.Cake, 0, position);
+                SpawnPickup(4, 0, position);
             }
 
             if (enemy.IsElite)
             {
-                SpawnPickup(PickupKind.Gold, 25, position);
+                SpawnPickup(5, 25, position);
                 if (UnityEngine.Random.value < 0.35f)
                 {
-                    SpawnPickup(PickupKind.Chest, 0, position + UnityEngine.Random.insideUnitCircle * 0.3f);
+                    SpawnPickup(6, 0, position + UnityEngine.Random.insideUnitCircle * 0.3f);
                 }
             }
 
@@ -113,7 +113,7 @@ namespace App.Battle
 
             if (enemy.IsBoss)
             {
-                SpawnPickup(PickupKind.Chest, 0, position);
+                SpawnPickup(6, 0, position);
                 Session.AddGold(30);
 
                 if (def.Id == BattleSession.BossEnemyId)
@@ -223,9 +223,16 @@ namespace App.Battle
             return 1f + Session.Elapsed / 60f * 1.8f;
         }
 
-        private void SpawnPickup(PickupKind kind, int value, Vector2 position)
+        private void SpawnPickup(int defId, int amount, Vector2 position)
         {
-            _pickups.Add(_pickupFactory.Create(kind, value, position));
+            var def = PickupDef.Get(defId);
+            if (def == null)
+            {
+                AppLog.Warn(LogChannel.Game, $"[Battle] pickup id {defId} not found");
+                return;
+            }
+
+            _pickups.Add(_pickupFactory.Create(def, amount, position));
         }
 
         public void DropRestPickups()
@@ -236,8 +243,8 @@ namespace App.Battle
             }
 
             var position = (Vector2)Player.transform.position;
-            SpawnPickup(PickupKind.Cake, 0, position + new Vector2(-1.2f, 0.5f));
-            SpawnPickup(PickupKind.Magnet, 0, position + new Vector2(1.2f, 0.5f));
+            SpawnPickup(4, 0, position + new Vector2(-1.2f, 0.5f));
+            SpawnPickup(7, 0, position + new Vector2(1.2f, 0.5f));
         }
 
     }

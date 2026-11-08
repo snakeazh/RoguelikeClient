@@ -1,3 +1,4 @@
+using App.Config;
 using UnityEngine;
 
 namespace App.Battle
@@ -12,11 +13,11 @@ namespace App.Battle
             _root = root;
         }
 
-        public PickupUnit Create(PickupKind kind, int value, Vector2 position)
+        public PickupUnit Create(PickupDef def, int amount, Vector2 position)
         {
             var go = BattleVisuals.Spawn(BattleVisuals.PickupPrefab, "Pickup", _root);
             var pickup = go.AddComponent<PickupUnit>();
-            pickup.Init(kind, value, position);
+            pickup.Init(def, amount, position);
             return pickup;
         }
     }

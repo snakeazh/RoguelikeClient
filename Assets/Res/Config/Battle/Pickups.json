@@ -1,0 +1,96 @@
+[
+  {
+    "Id": 1,
+    "Sprite": "pickup_exp",
+    "Size": 0.24,
+    "Lifetime": 90,
+    "Weight": 10,
+    "Effects": [
+      { "Key": "exp", "Args": {} }
+    ]
+  },
+  {
+    "Id": 2,
+    "Sprite": "pickup_exp",
+    "Size": 0.32,
+    "Lifetime": 90,
+    "Weight": 6,
+    "Effects": [
+      { "Key": "exp", "Args": {} }
+    ]
+  },
+  {
+    "Id": 3,
+    "Sprite": "pickup_exp_big",
+    "Size": 0.46,
+    "Lifetime": 90,
+    "Weight": 3,
+    "Effects": [
+      { "Key": "exp", "Args": {} }
+    ]
+  },
+  {
+    "Id": 4,
+    "Sprite": "pickup_cake",
+    "Size": 0.44,
+    "Lifetime": 120,
+    "Weight": 2,
+    "Effects": [
+      { "Key": "heal", "Args": { "Percent": 0.3 } },
+      { "Key": "toast", "Args": { "Text": "恢复 30% 生命" } }
+    ]
+  },
+  {
+    "Id": 5,
+    "Sprite": "pickup_gold",
+    "Size": 0.30,
+    "Lifetime": 120,
+    "Weight": 8,
+    "Effects": [
+      { "Key": "gold", "Args": {} }
+    ]
+  },
+  {
+    "Id": 6,
+    "Sprite": "pickup_chest",
+    "Size": 0.62,
+    "Lifetime": 180,
+    "Weight": 1,
+    "Effects": [
+      { "Key": "chest", "Args": {} }
+    ]
+  },
+  {
+    "Id": 7,
+    "Sprite": "pickup_magnet",
+    "Size": 0.40,
+    "Lifetime": 120,
+    "Weight": 1,
+    "Effects": [
+      { "Key": "pullAll", "Args": {} },
+      { "Key": "toast", "Args": { "Text": "磁力吸取！" } }
+    ]
+  },
+  {
+    "Id": 8,
+    "Sprite": "pickup_bomb",
+    "Size": 0.42,
+    "Lifetime": 120,
+    "Weight": 1,
+    "Effects": [
+      { "Key": "explode", "Args": { "Radius": 4.0, "Damage": 60.0 } },
+      { "Key": "toast", "Args": { "Text": "糖果炸弹！" } }
+    ]
+  },
+  {
+    "Id": 9,
+    "Sprite": "pickup_hourglass",
+    "Size": 0.38,
+    "Lifetime": 120,
+    "Weight": 1,
+    "Effects": [
+      { "Key": "freeze", "Args": { "Seconds": 3.0 } },
+      { "Key": "toast", "Args": { "Text": "时间定格 3 秒" } }
+    ]
+  }
+]

@@ -29,7 +29,8 @@ namespace App.Config
                 $"[Config] DemoItemConfig x{DemoItemConfig.Count}, "
                 + $"Enemy x{EnemyDef.Count}, Weapon x{WeaponDef.Count}, "
                 + $"Passive x{PassiveDef.Count}, Wave x{WaveDef.Count}, Level x{LevelDef.Count}, "
-                + $"Character x{CharacterDef.Count} loaded.");
+                + $"Character x{CharacterDef.Count} loaded, "
+                + $"Pickup x{PickupDef.Count} loaded.");
         }
 
         /// <summary>战斗数值表。缺表说明资源没导出，直接抛错，避免带着空表进战斗。</summary>
@@ -41,6 +42,7 @@ namespace App.Config
             WaveDef.Load(await LoadArrayAsync<WaveDef>(resources, ResResourcePaths.BattleWaves));
             LevelDef.Load(await LoadArrayAsync<LevelDef>(resources, ResResourcePaths.BattleLevels));
             CharacterDef.Load(await LoadArrayAsync<CharacterDef>(resources, ResResourcePaths.BattleCharacters));
+            PickupDef.Load(await LoadArrayAsync<PickupDef>(resources, ResResourcePaths.BattlePickups));
         }
 
         /// <summary>清空所有已加载的表（热重载 / 退出登录时用）。</summary>
@@ -53,6 +55,7 @@ namespace App.Config
             WaveDef.Clear();
             LevelDef.Clear();
             CharacterDef.Clear();
+            PickupDef.Clear();
         }
 
         /// <summary>加载 json 顶层数组并反序列化（JsonUtility 需要外面包一层对象）。</summary>

@@ -22,7 +22,7 @@ namespace App.Battle
     /// - 敌人/弹体/拾取物都是普通 List + 每帧倒序遍历销毁，规模在几百个单位以内足够；
     /// - 流程状态收敛在 <see cref="BattlePhase"/>：只有 Running 推进模拟，升级/暂停/结算都在等面板或玩家。
     /// </summary>
-    public sealed partial class BattleRunner : MonoBehaviour, IBattleContext
+    public sealed partial class BattleRunner : MonoBehaviour, IBattleContext, IPickupContext
     {
         private readonly List<EnemyUnit> _enemies = new List<EnemyUnit>(256);
         private static readonly List<EnemyUnit> s_enemyBuffer = new List<EnemyUnit>(256);
@@ -32,6 +32,7 @@ namespace App.Battle
         private EnemySpawner _spawner;
         private IEnemyFactory _enemyFactory;
         private IPickupFactory _pickupFactory;
+        private PickupEffects _pickupEffects;
         private WeaponRuntime _weapons;
         private IUIManager _ui;
         private Action _onExit;
@@ -176,6 +177,7 @@ namespace App.Battle
             // 生成器：敌人/拾取物各自一个工厂（MonoBehaviour 不能用构造器），波次策略按默认注册表注入。
             _enemyFactory = new EnemyFactory(this, transform);
             _pickupFactory = new PickupFactory(transform);
+            _pickupEffects = PickupEffects.CreateDefault();
             _spawner = new EnemySpawner(WaveStepRegistry.CreateDefault(), WaveDef.All.Values);
 
             _weapons = new WeaponRuntime();

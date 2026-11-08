@@ -41,52 +41,35 @@ namespace App.Battle
 
         private void ApplyPickup(PickupUnit pickup)
         {
-            switch (pickup.Kind)
+            var def = pickup.Def;
+            if (def == null || def.Effects == null)
             {
-                case PickupKind.ExpSmall:
-                case PickupKind.ExpMedium:
-                case PickupKind.ExpLarge:
-                    Session.AddExp(pickup.Value);
-                    break;
+                return;
+            }
 
-                case PickupKind.Cake:
-                    Session.HealPercent(0.3f);
-                    Toast("恢复 30% 生命");
-                    break;
-
-                case PickupKind.Gold:
-                    Session.AddGold(pickup.Value);
-                    break;
-
-                case PickupKind.Chest:
-                    GrantChest();
-                    break;
-
-                case PickupKind.Magnet:
-                    foreach (var other in _pickups)
-                    {
-                        if (other != null && other != pickup)
-                        {
-                            other.ForceAttract();
-                        }
-                    }
-
-                    Toast("磁力吸取！");
-                    break;
-
-                case PickupKind.Bomb:
-                    ExplodeAt(Player.transform.position, 4f, DamageInfo.Plain(60f), false);
-                    Toast("糖果炸弹！");
-                    break;
-
-                case PickupKind.Hourglass:
-                    _freezeUntil = Time.time + 3f;
-                    Toast("时间定格 3 秒");
-                    break;
+            // 效果是数据：一个拾取物可以挂多条原语，顺序由 Pickups.json 决定。
+            for (var i = 0; i < def.Effects.Count; i++)
+            {
+                var entry = def.Effects[i];
+                _pickupEffects.Get(entry.Key).Apply(this, pickup, entry.Args ?? new App.Config.PickupArgs());
             }
         }
 
-        private void GrantChest()
+        // ---------- IPickupContext ----------
+        public Vector3 PlayerPosition => Player != null ? Player.transform.position : Vector3.zero;
+
+        public IReadOnlyList<PickupUnit> ActivePickups => _pickups;
+
+        void IPickupContext.ExplodeAt(Vector3 position, float radius, DamageInfo damage)
+        {
+            ExplodeAt(position, radius, damage, false);
+        }
+
+        public void FreezeEnemies(float seconds)
+        {
+            _freezeUntil = Time.time + Mathf.Max(0f, seconds);
+        }
+        public void GrantChest()
         {
             // 1) 有满足条件的武器先进化（满级武器 + 配套被动满级）。
             var evolvable = Session.FindEvolvable();

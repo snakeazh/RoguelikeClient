@@ -52,6 +52,7 @@ namespace App.Resources
 
         /// <summary>战斗：可选角色表（初始血量、移速、本命武器）。</summary>
         public const string BattleCharacters = "Config/Battle/Characters";
+        public const string BattlePickups = "Config/Battle/Pickups";
 
         // ---------- 音频 ----------
         public const string SfxUiClick = "Audio/Effect/ui_click_03";

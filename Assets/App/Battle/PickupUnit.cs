@@ -1,66 +1,38 @@
+using App.Config;
 using UnityEngine;
 
 namespace App.Battle
 {
-    public enum PickupKind
-    {
-        ExpSmall = 1,
-        ExpMedium = 5,
-        ExpLarge = 20,
-        Cake,
-        Gold,
-        Chest,
-        Magnet,
-        Bomb,
-        Hourglass
-    }
-
     /// <summary>
-    /// 拾取物：经验糖 / 小蛋糕 / 金币 / 宝箱 / 吸糖 / 炸弹 / 沙漏。
-    /// 进入磁力半径后被吸向玩家，贴身后由 BattleRunner 结算效果。
+    /// 拾取物：只负责「飞向玩家」与「外观」，具体效果由 `PickupDef.Effects` 里的原语逐条执行。
+    /// 这样加一种拾取物通常只是往 `Pickups.json` 加一行，不用新增枚举或改这里。
     /// </summary>
     public sealed class PickupUnit : MonoBehaviour
     {
         private float _life = 90f;
 
-        public PickupKind Kind { get; private set; }
-        public int Value { get; private set; }
+        public PickupDef Def { get; private set; }
+
+        /// <summary>本次掉落的数量（经验/金币）。效果里 `Args.Amount` 为空时用它。</summary>
+        public int Amount { get; private set; }
+
         public bool Attracted { get; private set; }
 
-        public void Init(PickupKind kind, int value, Vector2 position)
+        public void Init(PickupDef def, int amount, Vector2 position)
         {
-            Kind = kind;
-            Value = value;
+            Def = def;
+            Amount = amount;
+            _life = def != null && def.Lifetime > 0f ? def.Lifetime : 90f;
+
             transform.position = position;
-            name = "Pickup_" + kind;
+            name = "Pickup_" + (def != null ? def.Id.ToString() : "?");
 
-            var (spriteKey, fallback, size) = Appearance(kind);
-            BattleVisuals.Body(transform, spriteKey, Color.white, size, BattleSort.Pickup, fallback);
-        }
+            var size = def != null && def.Size > 0f ? def.Size : 0.3f;
+            var spriteKey = def != null && !string.IsNullOrEmpty(def.Sprite)
+                ? "Battle/Sprites/" + def.Sprite
+                : BattleVisuals.PickupFallback;
 
-        private static (string spriteKey, Sprite fallback, float size) Appearance(PickupKind kind)
-        {
-            switch (kind)
-            {
-                case PickupKind.ExpMedium:
-                    return ("Battle/Sprites/pickup_exp", PlaceholderArt.Circle, 0.32f);
-                case PickupKind.ExpLarge:
-                    return ("Battle/Sprites/pickup_exp_big", PlaceholderArt.Circle, 0.46f);
-                case PickupKind.Cake:
-                    return ("Battle/Sprites/pickup_cake", PlaceholderArt.Square, 0.44f);
-                case PickupKind.Gold:
-                    return ("Battle/Sprites/pickup_gold", PlaceholderArt.Circle, 0.30f);
-                case PickupKind.Chest:
-                    return ("Battle/Sprites/pickup_chest", PlaceholderArt.Square, 0.62f);
-                case PickupKind.Magnet:
-                    return ("Battle/Sprites/pickup_magnet", PlaceholderArt.Triangle, 0.40f);
-                case PickupKind.Bomb:
-                    return ("Battle/Sprites/pickup_bomb", PlaceholderArt.Circle, 0.42f);
-                case PickupKind.Hourglass:
-                    return ("Battle/Sprites/pickup_hourglass", PlaceholderArt.Square, 0.38f);
-                default:
-                    return ("Battle/Sprites/pickup_exp", PlaceholderArt.Circle, 0.24f);
-            }
+            BattleVisuals.Body(transform, spriteKey, Color.white, size, BattleSort.Pickup, PlaceholderArt.Circle);
         }
 
         /// <summary>被磁力道具强制吸取。</summary>

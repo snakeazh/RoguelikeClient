@@ -174,6 +174,9 @@ camelCase JSON、401 自动清 token、超时 15s、失败抛 `GameApiException(
   （`CannonRig`），自动转向最近的敌人（临界阻尼转向，`AngleSmoothTime` / `MaxTurnSpeed` 调手感），
   冷却期间炮口光球由小变大、外圈能量环向炮口收缩，炮口对准之后才开火（后座 + 炮口闪光），
   弹体从炮口而不是玩家中心射出。细节见 战斗系统.md 的「2.5 随身炮台」。
+- 拾取物：`Pickups.json` 每行是「一串效果原语」（`exp/gold/heal/freeze/explode/pullAll/chest/toast` + 参数），
+  `PickupUnit` 只管精灵/尺寸/寿命/吸附。加一种掉落只改 JSON；加一种新效果实现 `IPickupEffect`
+  并在 `PickupEffects.CreateDefault()` 注册一行。细节见 战斗系统.md 的「2.9 拾取物」。
 - 未包含：局外成长树、暂停菜单、音效、正式 UI 皮。
 
 ## 8. 打包
