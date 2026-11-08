@@ -74,13 +74,15 @@ namespace App.Battle
         public float CooldownOf(WeaponInstance weapon)
         {
             var levelScale = 1f - (weapon.Level - 1) * weapon.Def.CooldownPerLevel;
-            return Mathf.Max(MinCooldown, weapon.Def.Cooldown * levelScale * _session.CooldownMultiplier);
+            var innate = weapon.IsInnate ? BattleSession.InnateCooldownMultiplier : 1f;
+            return Mathf.Max(MinCooldown, weapon.Def.Cooldown * levelScale * innate * _session.CooldownMultiplier);
         }
 
         public float DamageOf(WeaponInstance weapon)
         {
             var levelScale = 1f + (weapon.Level - 1) * weapon.Def.DamagePerLevel;
-            return weapon.Def.Damage * levelScale * _session.DamageMultiplier;
+            var innate = weapon.IsInnate ? BattleSession.InnateDamageMultiplier : 1f;
+            return weapon.Def.Damage * levelScale * innate * _session.DamageMultiplier;
         }
 
         public float AreaOf(WeaponInstance weapon, float baseValue)

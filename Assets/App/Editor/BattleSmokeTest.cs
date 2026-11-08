@@ -33,6 +33,8 @@ namespace App.EditorTools
         private const string ImmortalKey = "BattleSmoke.Immortal";
         private const string ResultSeenKey = "BattleSmoke.ResultSeen";
 
+        private const string CharacterKey = "BattleSmoke.Character";
+
         private const string ScenePath = "Assets/Scenes/Main.unity";
         private const float DefaultTargetSeconds = 40f;
         private const float DefaultSpeed = 4f;
@@ -69,6 +71,7 @@ namespace App.EditorTools
             var target = ReadArg("-battleSeconds", DefaultTargetSeconds);
             var speed = ReadArg("-battleSpeed", DefaultSpeed);
             var immortal = ReadArg("-battleImmortal", 0f) > 0f;
+            var characterId = ReadArg("-battleCharacter", 0f);
 
             SessionState.SetBool(ActiveKey, true);
             SessionState.SetBool(ImmortalKey, immortal);
@@ -76,6 +79,7 @@ namespace App.EditorTools
             SessionState.SetInt(PhaseKey, 0);
             SessionState.SetFloat(TargetKey, target);
             SessionState.SetFloat(SpeedKey, speed);
+            SessionState.SetInt(CharacterKey, (int)characterId);
             // 加速越大，真实等待越短；留出启动与升级弹窗的余量。
             var timeout = 60f + target / Mathf.Max(1f, speed) * 3f;
             SessionState.SetFloat(DeadlineKey, (float)EditorApplication.timeSinceStartup + timeout);
@@ -150,6 +154,13 @@ namespace App.EditorTools
             try
             {
                 // 走真实入口：首页按钮 → HomeViewModel.StartBattleCommand → BattleLauncher。
+                // -battleCharacter N 只是把存档里的选择改掉，入口本身不变。
+                var characterId = SessionState.GetInt(CharacterKey, 0);
+                if (characterId > 0)
+                {
+                    AppServices.Resolve<App.Battle.CharacterSelection>().Select(characterId);
+                }
+
                 var home = AppServices.Resolve<App.UI.Home.HomeViewModel>();
                 home.StartBattleCommand.Execute();
 

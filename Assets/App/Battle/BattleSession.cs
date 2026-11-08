@@ -38,6 +38,14 @@ namespace App.Battle
         /// <summary>默认角色 Id（选人界面落地前固定为 1 号游侠）。</summary>
         public const int DefaultCharacterId = 1;
 
+        /// <summary>
+        /// 本命武器的强度修正：不占武器槽，所以单发伤害略低（×0.85），
+        /// 但出手更快（冷却 ×0.9）——手感更跟手，也保证前 30 秒清得动第一波。
+        /// </summary>
+        public const float InnateDamageMultiplier = 0.85f;
+
+        public const float InnateCooldownMultiplier = 0.9f;
+
         private readonly List<WeaponInstance> _weapons = new List<WeaponInstance>(MaxWeaponSlots);
         private readonly List<PassiveInstance> _passives = new List<PassiveInstance>(MaxPassiveSlots);
 
