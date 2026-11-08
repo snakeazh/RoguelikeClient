@@ -28,9 +28,8 @@ namespace App.Battle
             // 环形刷新之类的点位可能落在墙外，统一夹进可走范围。
             position = BattleMap.ClampToWalkable(position, 0.4f);
 
-            var go = BattleVisuals.Spawn(BattleVisuals.EnemyPrefab, "Enemy_" + def.Name, transform);
-            var enemy = go.AddComponent<EnemyUnit>();
-            enemy.Init(this, def, position, affix, EnemySpawner.HpScale(elapsed), EnemySpawner.DamageScale(elapsed));
+            var enemy = _enemyFactory.Create(
+                def, position, affix, EnemySpawner.HpScale(elapsed), EnemySpawner.DamageScale(elapsed));
             _enemies.Add(enemy);
         }
 
@@ -48,9 +47,9 @@ namespace App.Battle
             var position = BattleMap.ClampToWalkable(
                 new Vector2(player.x, view.yMax + 0.6f),
                 0.5f);
-            var go = BattleVisuals.Spawn(BattleVisuals.EnemyPrefab, "Boss_" + def.Name, transform);
-            var boss = go.AddComponent<EnemyUnit>();
-            boss.Init(this, def, position, EliteAffix.None, 1f, 1f);
+
+            // Boss 不吃按分钟成长：强度完全由 Enemies.json 的血量决定。
+            var boss = _enemyFactory.Create(def, position, EliteAffix.None, 1f, 1f);
             _enemies.Add(boss);
         }
 

@@ -30,6 +30,8 @@ namespace App.Battle
         private readonly List<PickupUnit> _pickups = new List<PickupUnit>(256);
 
         private EnemySpawner _spawner;
+        private IEnemyFactory _enemyFactory;
+        private IPickupFactory _pickupFactory;
         private WeaponRuntime _weapons;
         private IUIManager _ui;
         private Action _onExit;
@@ -171,8 +173,10 @@ namespace App.Battle
                 _hurtOverlay = HurtOverlay.Create(_ui.Root.GetLayer(UILayer.Hud));
             }
 
-            _spawner = new EnemySpawner();
-            _spawner.Init();
+            // 生成器：敌人/拾取物各自一个工厂（MonoBehaviour 不能用构造器），波次策略按默认注册表注入。
+            _enemyFactory = new EnemyFactory(this, transform);
+            _pickupFactory = new PickupFactory(transform);
+            _spawner = new EnemySpawner(WaveStepRegistry.CreateDefault(), WaveDef.All.Values);
 
             _weapons = new WeaponRuntime();
             _weapons.Init(this, Session);

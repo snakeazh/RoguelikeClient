@@ -225,10 +225,7 @@ namespace App.Battle
 
         private void SpawnPickup(PickupKind kind, int value, Vector2 position)
         {
-            var go = BattleVisuals.Spawn(BattleVisuals.PickupPrefab, "Pickup", transform);
-            var pickup = go.AddComponent<PickupUnit>();
-            pickup.Init(kind, value, position);
-            _pickups.Add(pickup);
+            _pickups.Add(_pickupFactory.Create(kind, value, position));
         }
 
         public void DropRestPickups()
