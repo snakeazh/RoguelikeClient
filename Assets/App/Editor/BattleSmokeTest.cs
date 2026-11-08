@@ -35,6 +35,9 @@ namespace App.EditorTools
         private const string SummaryKey = "BattleSmoke.Summary";
         private const string SeedKey = "BattleSmoke.Seed";
         private const string FixedStepKey = "BattleSmoke.FixedStep";
+        private const string PerfFrameKey = "BattleSmoke.PerfFrame";
+        private const string PerfGcKey = "BattleSmoke.PerfGc";
+        private const string PerfTimeKey = "BattleSmoke.PerfTime";
 
         private const string CharacterKey = "BattleSmoke.Character";
 
@@ -173,6 +176,9 @@ namespace App.EditorTools
                 launcher.NextSeed = SessionState.GetInt(SeedKey, 0);
                 launcher.NextFixedStep = SessionState.GetBool(FixedStepKey, false) ? 1f / 60f : 0f;
                 launcher.NextSimulationSpeed = SessionState.GetFloat(SpeedKey, DefaultSpeed);
+                SessionState.SetInt(PerfFrameKey, Time.frameCount);
+                SessionState.SetInt(PerfGcKey, GC.CollectionCount(0));
+                SessionState.SetFloat(PerfTimeKey, Time.realtimeSinceStartup);
                 home.StartBattleCommand.Execute();
 
                 for (var i = 0; i < 300 && launcher.Runner == null; i++)
@@ -329,7 +335,24 @@ namespace App.EditorTools
         private static void Pass(string message)
         {
             Debug.Log(message);
+            LogPerformance();
             Finish(0);
+        }
+
+        /// <summary>P3 性能基线：整局帧数、平均帧耗时、GC0 次数，和通关数据一起打出来方便对比。</summary>
+        private static void LogPerformance()
+        {
+            var started = SessionState.GetInt(PerfFrameKey, 0);
+            var frames = Time.frameCount - started;
+            if (frames <= 0)
+            {
+                return;
+            }
+
+            var gc0 = GC.CollectionCount(0) - SessionState.GetInt(PerfGcKey, 0);
+            var elapsed = Time.realtimeSinceStartup - SessionState.GetFloat(PerfTimeKey, 0f);
+            Debug.Log(
+                $"[Perf] frames={frames} avgFrameMs={elapsed * 1000f / frames:0.00} gc0={gc0} wall={elapsed:0.0}s");
         }
 
         private static void Fail(string reason)
