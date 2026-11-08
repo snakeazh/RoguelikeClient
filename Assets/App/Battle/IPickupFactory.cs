@@ -1,11 +1,8 @@
-using App.Config;
-using UnityEngine;
-
 namespace App.Battle
 {
-    /// <summary>拾取物生成入口：与 <see cref="IEnemyFactory"/> 同一套理由（MonoBehaviour 不能用构造器）。</summary>
+    /// <summary>拾取物生成入口：逻辑状态由 <see cref="PickupSystem"/> 建，工厂只负责造表现。</summary>
     public interface IPickupFactory
     {
-        PickupUnit Create(PickupDef def, int amount, Vector2 position);
+        PickupUnit Create(PickupState state);
     }
 }

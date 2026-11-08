@@ -36,6 +36,7 @@ namespace App.Battle
         private IEnemyFactory _enemyFactory;
         private IPickupFactory _pickupFactory;
         private PickupEffects _pickupEffects;
+        private PickupSystem _pickupSystem;
         private WeaponRuntime _weapons;
         private IUIManager _ui;
         private Action _onExit;
@@ -191,6 +192,7 @@ namespace App.Battle
             _enemyFactory = new EnemyFactory(this, transform);
             _pickupFactory = new PickupFactory(transform);
             _pickupEffects = PickupEffects.CreateDefault();
+            _pickupSystem = new PickupSystem(_pickupEffects);
             _spawner = new EnemySpawner(WaveStepRegistry.CreateDefault(), WaveDef.All.Values);
 
             _weapons = new WeaponRuntime();
@@ -345,6 +347,7 @@ namespace App.Battle
             }
 
             _pickups.Clear();
+            _pickupSystem?.Clear();
 
             _weapons?.Dispose();
         }

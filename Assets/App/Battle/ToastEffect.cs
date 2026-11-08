@@ -13,7 +13,7 @@ namespace App.Battle
             _defaultText = defaultText;
         }
 
-        public void Apply(IPickupContext context, PickupUnit pickup, PickupArgs args)
+        public void Apply(IPickupContext context, PickupState pickup, PickupArgs args)
         {
             var text = !string.IsNullOrEmpty(args.Text) ? args.Text : _defaultText;
             if (!string.IsNullOrEmpty(text))

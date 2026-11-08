@@ -238,7 +238,8 @@ namespace App.Battle
                 return;
             }
 
-            _pickups.Add(_pickupFactory.Create(def, amount, position));
+            var state = _pickupSystem.Spawn(def, amount, position);
+            _pickups.Add(_pickupFactory.Create(state));
         }
 
         public void DropRestPickups()

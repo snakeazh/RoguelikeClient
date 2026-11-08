@@ -13,7 +13,7 @@ namespace App.Battle
 
         Vector3 PlayerPosition { get; }
 
-        IReadOnlyList<PickupUnit> ActivePickups { get; }
+        IReadOnlyList<PickupState> ActivePickups { get; }
 
         /// <summary>只伤敌人，不伤玩家。</summary>
         void ExplodeAt(Vector3 position, float radius, DamageInfo damage);
@@ -31,6 +31,6 @@ namespace App.Battle
     /// </summary>
     public interface IPickupEffect
     {
-        void Apply(IPickupContext context, PickupUnit pickup, App.Config.PickupArgs args);
+        void Apply(IPickupContext context, PickupState pickup, App.Config.PickupArgs args);
     }
 }

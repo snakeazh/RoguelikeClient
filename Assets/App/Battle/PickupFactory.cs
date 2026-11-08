@@ -1,9 +1,8 @@
-using App.Config;
 using UnityEngine;
 
 namespace App.Battle
 {
-    /// <summary>拾取物的默认工厂：预制体 → AddComponent → Init。</summary>
+    /// <summary>拾取物的默认工厂：预制体 → AddComponent → Init（只造表现，不决定它是什么）。</summary>
     public sealed class PickupFactory : IPickupFactory
     {
         private readonly Transform _root;
@@ -13,11 +12,11 @@ namespace App.Battle
             _root = root;
         }
 
-        public PickupUnit Create(PickupDef def, int amount, Vector2 position)
+        public PickupUnit Create(PickupState state)
         {
             var go = BattleVisuals.Spawn(BattleVisuals.PickupPrefab, "Pickup", _root);
             var pickup = go.AddComponent<PickupUnit>();
-            pickup.Init(def, amount, position);
+            pickup.Init(state);
             return pickup;
         }
     }

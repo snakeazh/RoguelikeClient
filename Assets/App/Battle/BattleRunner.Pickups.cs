@@ -16,49 +16,38 @@ namespace App.Battle
     public sealed partial class BattleRunner : MonoBehaviour
     {
         // ---------- 拾取 ----------
+        /// <summary>规则层推进吸附/拾取/效果，表现层再跟着状态走。</summary>
         private void TickPickups(float deltaTime)
         {
             var magnetRadius = 1.8f * Session.MagnetMultiplier;
+            _pickupSystem.Tick(deltaTime, PlayerPosition, Player != null, magnetRadius, this);
+            SyncPickupViews();
+        }
+
+        private void SyncPickupViews()
+        {
             for (var i = _pickups.Count - 1; i >= 0; i--)
             {
                 var pickup = _pickups[i];
-                if (pickup == null)
+                if (pickup == null || pickup.State == null || pickup.State.Done)
                 {
                     _pickups.RemoveAt(i);
+                    if (pickup != null)
+                    {
+                        Destroy(pickup.gameObject);
+                    }
+
                     continue;
                 }
 
-                if (!pickup.Tick(deltaTime, Player, magnetRadius))
-                {
-                    continue;
-                }
-
-                ApplyPickup(pickup);
-                _pickups.RemoveAt(i);
-                Destroy(pickup.gameObject);
-            }
-        }
-
-        private void ApplyPickup(PickupUnit pickup)
-        {
-            var def = pickup.Def;
-            if (def == null || def.Effects == null)
-            {
-                return;
-            }
-
-            // 效果是数据：一个拾取物可以挂多条原语，顺序由 Pickups.json 决定。
-            for (var i = 0; i < def.Effects.Count; i++)
-            {
-                var entry = def.Effects[i];
-                _pickupEffects.Get(entry.Key).Apply(this, pickup, entry.Args ?? new App.Config.PickupArgs());
+                pickup.SyncFromState();
             }
         }
 
         // ---------- IPickupContext ----------
         public Vector3 PlayerPosition => Player != null ? Player.transform.position : Vector3.zero;
 
-        public IReadOnlyList<PickupUnit> ActivePickups => _pickups;
+        public IReadOnlyList<PickupState> ActivePickups => _pickupSystem.States;
 
         void IPickupContext.ExplodeAt(Vector3 position, float radius, DamageInfo damage)
         {
