@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace App.Battle
@@ -13,9 +14,9 @@ namespace App.Battle
         /// <summary>同一只敌人两次接触伤害之间的间隔。</summary>
         public const float ContactInterval = 0.5f;
 
-        private readonly System.Collections.Generic.List<EnemyUnit> _buffer = new System.Collections.Generic.List<EnemyUnit>(256);
+        private readonly List<EnemyState> _buffer = new List<EnemyState>(256);
 
-        public void Tick(float deltaTime, IEnemyContext context, System.Collections.Generic.IReadOnlyList<EnemyUnit> enemies)
+        public void Tick(float deltaTime, IEnemyContext context, List<EnemyState> enemies)
         {
             if (context == null)
             {
@@ -27,20 +28,16 @@ namespace App.Battle
 
             // 与移动一样先拷一份：接触伤害可能触发爆炸/分裂，遍历中会增删敌人。
             _buffer.Clear();
-            for (var i = 0; i < enemies.Count; i++)
-            {
-                _buffer.Add(enemies[i]);
-            }
+            _buffer.AddRange(enemies);
 
             for (var i = 0; i < _buffer.Count; i++)
             {
-                var enemy = _buffer[i];
-                if (enemy == null || enemy.IsDead)
+                var state = _buffer[i];
+                if (state == null || state.IsDead)
                 {
                     continue;
                 }
 
-                var state = enemy.State;
                 if (context.ElapsedSeconds < state.NextContactTime)
                 {
                     continue;

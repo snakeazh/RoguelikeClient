@@ -6,7 +6,7 @@ namespace App.Battle
     /// <summary>
     /// 敌人规则（P3-1b 第 4 步）：行为调度 → 位移 → Boss 二阶段。
     ///
-    /// 只读 <see cref="EnemyState"/> 与行为注册表，不碰渲染；<see cref="EnemyUnit"/> 退化成表现层。
+    /// 只读写 <see cref="EnemyState"/> 与行为注册表，不认识任何 MonoBehaviour（6b 起敌人列表的权威就是状态）。
     /// 接触伤害在 <see cref="ContactSystem"/>，拆开是因为它关心的是「和玩家的距离」，和移动是两件事。
     /// </summary>
     public sealed class EnemySystem
@@ -19,16 +19,14 @@ namespace App.Battle
 
         public const int BossBurstCount = 12;
 
-        private readonly System.Collections.Generic.List<EnemyUnit> _buffer =
-            new System.Collections.Generic.List<EnemyUnit>(256);
+        private readonly List<EnemyState> _buffer = new List<EnemyState>(256);
+        private readonly List<EnemyState> _removed = new List<EnemyState>(64);
 
         /// <summary>本帧被移除的敌人（死亡）：表现层据此销毁 GameObject，逻辑层下一帧不再看见它们。</summary>
-        public IReadOnlyList<EnemyUnit> Removed => _removed;
-
-        private readonly List<EnemyUnit> _removed = new List<EnemyUnit>(64);
+        public IReadOnlyList<EnemyState> Removed => _removed;
 
         /// <summary>冻结（沙漏）时整段跳过 —— 冻结是「敌人全部不动」，包括行为和 Boss 弹幕。</summary>
-        public void Tick(float deltaTime, IEnemyContext context, System.Collections.Generic.IReadOnlyList<EnemyUnit> enemies, bool frozen)
+        public void Tick(float deltaTime, IEnemyContext context, List<EnemyState> enemies, bool frozen)
         {
             if (frozen || context == null)
             {
@@ -37,46 +35,34 @@ namespace App.Battle
 
             _removed.Clear();
 
-            // 先拷一份：行为里可能连锁击杀/分裂/爆炸，从而在遍历中增删 _enemies。
+            // 先拷一份：行为里可能连锁击杀/分裂/爆炸，从而在遍历中增删 enemies。
             _buffer.Clear();
-            for (var i = 0; i < enemies.Count; i++)
-            {
-                _buffer.Add(enemies[i]);
-            }
+            _buffer.AddRange(enemies);
 
             for (var i = 0; i < _buffer.Count; i++)
             {
-                var enemy = _buffer[i];
-                if (enemy == null || enemy.IsDead)
+                var state = _buffer[i];
+                if (state == null || state.IsDead)
                 {
                     continue;
                 }
 
-                TickOne(enemy.State, deltaTime, context);
+                TickOne(state, deltaTime, context);
             }
 
             // 死亡清理放在规则层末尾：武器/弹体本帧不再以尸体为目标，表现层随后销毁视图。
             for (var i = enemies.Count - 1; i >= 0; i--)
             {
-                var enemy = enemies[i];
-                if (enemy == null || enemy.IsDead)
+                var state = enemies[i];
+                if (state == null || state.IsDead)
                 {
-                    if (enemy != null)
+                    if (state != null)
                     {
-                        _removed.Add(enemy);
+                        _removed.Add(state);
                     }
 
-                    RemoveAt(enemies, i);
+                    enemies.RemoveAt(i);
                 }
-            }
-        }
-
-        // IReadOnlyList 没有 RemoveAt，敌人列表实际是 List<EnemyUnit>
-        private static void RemoveAt(IReadOnlyList<EnemyUnit> enemies, int index)
-        {
-            if (enemies is List<EnemyUnit> list)
-            {
-                list.RemoveAt(index);
             }
         }
 

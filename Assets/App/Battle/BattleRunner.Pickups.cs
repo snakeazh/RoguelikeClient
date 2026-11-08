@@ -66,6 +66,7 @@ namespace App.Battle
         }
 
         /// <summary>把一只敌人从场上拿掉（自爆自毁）：不结算击杀奖励、不掉落。</summary>
+        /// <summary>自爆怪炸完自己：只销毁视图，死亡与掉落由 <see cref="EnemySystem"/> 下一帧统一清理。</summary>
         public void DespawnEnemy(EnemyState state)
         {
             if (state == null)
@@ -73,22 +74,16 @@ namespace App.Battle
                 return;
             }
 
-            for (var i = _enemies.Count - 1; i >= 0; i--)
+            if (_enemyViews.TryGetValue(state, out var view))
             {
-                var unit = _enemies[i];
-                if (unit == null || unit.State != state)
+                _enemyViews.Remove(state);
+                if (view != null)
                 {
-                    continue;
+                    Destroy(view.gameObject);
                 }
-
-                _enemies.RemoveAt(i);
-                if (unit != null)
-                {
-                    Destroy(unit.gameObject);
-                }
-
-                return;
             }
+
+            state.Hp = 0f;
         }
 
         public void GrantChest()

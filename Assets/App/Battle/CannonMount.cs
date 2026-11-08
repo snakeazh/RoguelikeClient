@@ -18,7 +18,7 @@ namespace App.Battle
 
         private readonly WeaponRuntime _host;
         private CannonRig _rig;
-        private EnemyUnit _target;
+        private EnemyState _target;
 
         public CannonMount(WeaponRuntime host)
         {
@@ -81,7 +81,7 @@ namespace App.Battle
             }
 
             var aim = _target != null
-                ? ((Vector2)_target.transform.position - (Vector2)player.transform.position).normalized
+                ? (_target.Position - (Vector2)player.transform.position).normalized
                 : _rig.AimDirection;
             _rig.AimAt(aim, deltaTime);
 
@@ -111,7 +111,7 @@ namespace App.Battle
             _target = null;
         }
 
-        private bool IsTargetValid(EnemyUnit target, float range)
+        private bool IsTargetValid(EnemyState target, float range)
         {
             var player = _host.Player;
             if (target == null || player == null)
@@ -119,7 +119,7 @@ namespace App.Battle
                 return false;
             }
 
-            var distance = Vector2.Distance(target.transform.position, player.transform.position);
+            var distance = Vector2.Distance(target.Position, (Vector2)player.transform.position);
             return distance <= range;
         }
     }

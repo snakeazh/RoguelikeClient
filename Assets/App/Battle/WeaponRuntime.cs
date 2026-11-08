@@ -114,16 +114,16 @@ namespace App.Battle
         }
 
         /// <summary>索敌：取射程内"距离 / 权重"最小的敌人，Boss 与精英加权（不然永远在打身边小怪）。</summary>
-        public EnemyUnit FindNearestEnemy(float range)
+        public EnemyState FindNearestEnemy(float range)
         {
             if (_runner == null || _runner.Player == null)
             {
                 return null;
             }
 
-            EnemyUnit best = null;
+            EnemyState best = null;
             var bestScore = float.MaxValue;
-            var origin = (Vector2)_runner.Player.transform.position;
+            var origin = _runner.Player.State.Position;
 
             foreach (var enemy in _runner.Enemies)
             {
@@ -132,7 +132,7 @@ namespace App.Battle
                     continue;
                 }
 
-                var distance = Vector2.Distance(origin, enemy.transform.position);
+                var distance = Vector2.Distance(origin, enemy.Position);
                 if (distance > range)
                 {
                     continue;

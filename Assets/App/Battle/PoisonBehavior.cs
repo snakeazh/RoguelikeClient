@@ -56,7 +56,7 @@ namespace App.Battle
             }
 
             weapon.ResetCooldown(host.CooldownOf(weapon));
-            SpawnCloud(host, weapon, (target as EnemyUnit).Position, clouds);
+            SpawnCloud(host, weapon, target.Position, clouds);
         }
 
         public void Dispose(WeaponRuntime host, WeaponInstance weapon)
@@ -194,7 +194,7 @@ namespace App.Battle
                 }
 
                 host.Context.DamageEnemy(enemy, host.RollDamage(cloud.Damage));
-                enemy.ApplySlow(SlowFactor, host.Context.ElapsedSeconds);
+                enemy.SlowUntil = Mathf.Max(enemy.SlowUntil, host.Context.ElapsedSeconds + SlowFactor);
             }
         }
 

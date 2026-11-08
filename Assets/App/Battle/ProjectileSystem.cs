@@ -11,7 +11,7 @@ namespace App.Battle
     public sealed class ProjectileSystem
     {
         // 命中会击杀敌人（进而增删 runner 的敌人列表），所以先拷一份再遍历。
-        private static readonly List<EnemyUnit> s_targets = new List<EnemyUnit>(512);
+        private static readonly List<EnemyState> s_targets = new List<EnemyState>(512);
 
         private readonly List<ProjectileState> _states = new List<ProjectileState>(256);
 
@@ -27,7 +27,7 @@ namespace App.Battle
             float splash,
             float life,
             float spin = 0f,
-            int homingEnemyId = 0)
+            EnemyState homingTarget = null)
         {
             var state = new ProjectileState
             {
@@ -40,7 +40,7 @@ namespace App.Battle
                 Life = life,
                 Spin = spin,
                 FromPlayer = true,
-                HomingEnemyId = homingEnemyId
+                HomingTarget = homingTarget
             };
 
             _states.Add(state);
@@ -101,14 +101,11 @@ namespace App.Battle
             }
 
             // 追踪弹：朝目标缓慢转向
-            if (state.HomingEnemyId != 0)
+            var target = state.HomingTarget;
+            if (target != null && !target.IsDead)
             {
-                var target = FindEnemy(context, state.HomingEnemyId);
-                if (target != null && !target.IsDead)
-                {
-                    var desired = ((Vector2)target.transform.position - state.Position).normalized * state.Velocity.magnitude;
-                    state.Velocity = Vector2.Lerp(state.Velocity, desired, Mathf.Clamp01(deltaTime * 6f));
-                }
+                var desired = (target.Position - state.Position).normalized * state.Velocity.magnitude;
+                state.Velocity = Vector2.Lerp(state.Velocity, desired, Mathf.Clamp01(deltaTime * 6f));
             }
 
             state.Position += state.Velocity * deltaTime;
@@ -141,17 +138,17 @@ namespace App.Battle
 
             foreach (var enemy in s_targets)
             {
-                if (enemy == null || enemy.IsDead || state.HitEnemyIds.Contains(enemy.GetInstanceID()))
+                if (enemy == null || enemy.IsDead || state.HitEnemies.Contains(enemy))
                 {
                     continue;
                 }
 
-                if (Vector2.Distance(state.Position, enemy.transform.position) > state.Radius + enemy.Radius)
+                if (Vector2.Distance(state.Position, enemy.Position) > state.Radius + enemy.Radius)
                 {
                     continue;
                 }
 
-                state.HitEnemyIds.Add(enemy.GetInstanceID());
+                state.HitEnemies.Add(enemy);
                 context.DamageEnemy(enemy, state.Damage);
 
                 if (state.Splash > 0f)
@@ -191,17 +188,5 @@ namespace App.Battle
             state.Dead = true;
         }
 
-        private static EnemyUnit FindEnemy(IBattleContext context, int instanceId)
-        {
-            foreach (var enemy in context.Enemies)
-            {
-                if (enemy != null && enemy.GetInstanceID() == instanceId)
-                {
-                    return enemy;
-                }
-            }
-
-            return null;
-        }
     }
 }

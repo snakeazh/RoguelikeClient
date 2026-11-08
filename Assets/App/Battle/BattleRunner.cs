@@ -24,13 +24,12 @@ namespace App.Battle
     /// </summary>
     public sealed partial class BattleRunner : MonoBehaviour, IBattleContext, IPickupContext, IEnemyContext
     {
-        private readonly List<EnemyUnit> _enemies = new List<EnemyUnit>(256);
+        /// <summary>敌人视图：状态是权威，这里只保存「状态 → 显示对象」的映射。</summary>
+        private readonly Dictionary<EnemyState, EnemyUnit> _enemyViews = new Dictionary<EnemyState, EnemyUnit>(256);
         private readonly List<ProjectileUnit> _projectiles = new List<ProjectileUnit>(128);
         private readonly List<PickupUnit> _pickups = new List<PickupUnit>(256);
 
 
-        /// <summary>敌人出生规则（P3-1b 第 6 步）：查表、按时间成长、夹进可走区。</summary>
-        private readonly SpawnSystem _spawns = new SpawnSystem();
 
         private IEnemyFactory _enemyFactory;
         private IPickupFactory _pickupFactory;
@@ -62,7 +61,7 @@ namespace App.Battle
 
         public BattleSession Session { get; private set; }
         public PlayerUnit Player { get; private set; }
-        public IReadOnlyList<EnemyUnit> Enemies => _enemies;
+        public IReadOnlyList<EnemyState> Enemies => _simulation != null ? _simulation.Enemies : System.Array.Empty<EnemyState>();
         public Transform Root => transform;
         public float ElapsedSeconds => Session != null ? Session.Elapsed : 0f;
         public IReadOnlyList<ProjectileUnit> Projectiles => _projectiles;
@@ -284,7 +283,7 @@ namespace App.Battle
                 this,
                 this,
                 this,
-                _enemies,
+                _simulation.EnemyStates,
                 _input,
                 _walkable,
                 Session.Elapsed < _freezeUntil,
@@ -333,15 +332,15 @@ namespace App.Battle
         /// <summary>结算时清场：结算面板后面不该再留着敌人、弹体与掉落物。</summary>
         private void ClearBattlefield()
         {
-            foreach (var enemy in _enemies)
+            foreach (var view in _enemyViews.Values)
             {
-                if (enemy != null)
+                if (view != null)
                 {
-                    Destroy(enemy.gameObject);
+                    Destroy(view.gameObject);
                 }
             }
 
-            _enemies.Clear();
+            _enemyViews.Clear();
 
             foreach (var projectile in _projectiles)
             {

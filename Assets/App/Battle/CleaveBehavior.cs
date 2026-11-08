@@ -44,7 +44,7 @@ namespace App.Battle
             var halfAngle = SpreadDegrees * 0.5f;
             var damage = host.RollDamage(host.DamageOf(weapon));
 
-            var hits = new List<EnemyUnit>();
+            var hits = new List<EnemyState>();
             foreach (var enemy in host.Context.Enemies.ToArray())
             {
                 if (enemy.IsDead)

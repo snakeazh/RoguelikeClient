@@ -51,7 +51,7 @@ namespace App.Battle
                     continue;
                 }
 
-                var offset = position - enemy.State.Position;
+                var offset = position - enemy.Position;
                 var distance = offset.magnitude;
                 if (distance > ThreatRadius)
                 {
@@ -145,7 +145,7 @@ namespace App.Battle
                     continue;
                 }
 
-                var distance = Vector2.Distance(position, enemy.State.Position);
+                var distance = Vector2.Distance(position, enemy.Position);
                 if (distance < nearest)
                 {
                     nearest = distance;

@@ -18,14 +18,8 @@ namespace App.Battle
         // ---------- 刷怪 ----------
         public void SpawnEnemy(int enemyId, Vector2 position, EliteAffix affix, float elapsed)
         {
-            // 出生规则（查表 / 按分钟成长 / 夹进可走区）都在 SpawnSystem，这里只负责把状态接进列表。
-            var state = _spawns.Create(enemyId, position, affix, elapsed, _walkable);
-            if (state == null)
-            {
-                return;
-            }
-
-            _enemies.Add(_enemyFactory.Create(state));
+            // 出生规则（查表 / 按分钟成长 / 夹进可走区）都在 SpawnSystem，这里只把请求转给编排层。
+            _simulation?.SpawnEnemy(enemyId, position, affix, _walkable);
         }
 
         public void SpawnBoss(int enemyId, float elapsed)
@@ -35,13 +29,7 @@ namespace App.Battle
             var view = CameraView(1.2f);
             var position = new Vector2(player.x, view.yMax + 0.6f);
 
-            var state = _spawns.CreateBoss(enemyId, position, _walkable);
-            if (state == null)
-            {
-                return;
-            }
-
-            _enemies.Add(_enemyFactory.Create(state));
+            _simulation?.SpawnBoss(enemyId, position, _walkable);
         }
 
         /// <summary>

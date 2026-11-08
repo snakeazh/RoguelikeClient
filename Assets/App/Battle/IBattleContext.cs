@@ -26,7 +26,8 @@ namespace App.Battle
 
         PlayerUnit Player { get; }
 
-        IReadOnlyList<EnemyUnit> Enemies { get; }
+        /// <summary>敌人状态列表（权威）：表现层据此维护视图，规则层只认状态。</summary>
+        IReadOnlyList<EnemyState> Enemies { get; }
 
         /// <summary>可走区域（地图内缩掉墙厚）。</summary>
         Rect Walkable { get; }
@@ -45,7 +46,7 @@ namespace App.Battle
 
         void DropRestPickups();
 
-        void DamageEnemy(EnemyUnit enemy, DamageInfo damage);
+        void DamageEnemy(EnemyState enemy, DamageInfo damage);
 
         void DamagePlayer(float amount);
 
@@ -61,7 +62,7 @@ namespace App.Battle
             int pierce,
             float splash,
             float life,
-            EnemyUnit homingTarget,
+            EnemyState homingTarget,
             string spriteKey);
 
         void SpawnEnemyProjectile(Vector3 position, Vector2 direction, float speed, float damage);

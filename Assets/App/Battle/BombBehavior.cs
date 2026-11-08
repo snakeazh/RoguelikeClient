@@ -45,7 +45,7 @@ namespace App.Battle
             var radius = Mathf.Max(
                 0.6f,
                 host.AreaOf(weapon, weapon.Def.SplashRadius > 0f ? weapon.Def.SplashRadius : weapon.Def.Area));
-            var center = (Vector2)(target as EnemyUnit).Position;
+            var center = target.Position;
 
             for (var i = 0; i < count; i++)
             {

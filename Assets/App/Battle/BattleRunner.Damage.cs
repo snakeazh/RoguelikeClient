@@ -16,7 +16,7 @@ namespace App.Battle
     public sealed partial class BattleRunner : MonoBehaviour
     {
         // ---------- 伤害 ----------
-        public void DamageEnemy(EnemyUnit enemy, DamageInfo damage)
+        public void DamageEnemy(EnemyState enemy, DamageInfo damage)
         {
             if (enemy == null || enemy.IsDead)
             {
@@ -35,28 +35,29 @@ namespace App.Battle
             KillEnemy(enemy);
         }
 
-        /// <summary>敌人受击反馈：飘字 + 白色火花（闪白/击退/回弹在 EnemyUnit 内部）。</summary>
-        private void PlayEnemyHitFx(EnemyUnit enemy, DamageInfo damage)
+        /// <summary>敌人受击表现：飘字 + 白色火花（闪白/挤压由视图根据状态画）。</summary>
+        private void PlayEnemyHitFx(EnemyState enemy, DamageInfo damage)
         {
             var crit = damage.Crit;
             var color = crit ? new Color(1f, 0.85f, 0.3f) : Color.white;
+            var position = (Vector3)enemy.Position;
             DamagePopup.Show(
-                enemy.transform.position + Vector3.up * (enemy.Radius + 0.25f), damage.Amount, crit, color);
+                position + Vector3.up * (enemy.Radius + 0.25f), damage.Amount, crit, color);
 
             TransientFx.Flash(
-                enemy.transform.position,
+                position,
                 enemy.Radius * (crit ? 1.7f : 1.3f),
                 new Color(1f, 1f, 1f, crit ? 0.9f : 0.7f),
                 crit ? 0.14f : 0.1f,
                 22);
         }
 
-        private void KillEnemy(EnemyUnit enemy)
+        private void KillEnemy(EnemyState enemy)
         {
             Session.AddKill();
 
             var def = enemy.Def;
-            var position = (Vector2)enemy.transform.position;
+            var position = enemy.Position;
 
             // 死亡爆散：让「打死了」和「打了一下」在画面上区分开
             TransientFx.Flash(
@@ -96,7 +97,7 @@ namespace App.Battle
             }
 
             // 行为自带的分裂（分裂怪）：策略自己决定生几只、什么属性
-            EnemyBehaviors.Get(def.Behavior).OnDeath(enemy.State, this);
+            EnemyBehaviors.Get(def.Behavior).OnDeath(enemy, this);
 
             // 精英词缀的分裂：任何怪带上 Split 词缀都会分裂，与行为无关
             if (enemy.Affix == EliteAffix.Split)
@@ -108,8 +109,7 @@ namespace App.Battle
                 }
             }
 
-            _enemies.Remove(enemy);
-            enemy.KillSelf();
+
 
             if (enemy.IsBoss)
             {
@@ -169,14 +169,16 @@ namespace App.Battle
         public void ExplodeAt(Vector3 position, float radius, DamageInfo damage, bool hitPlayer)
         {
             var center = (Vector2)position;
-            foreach (var enemy in _enemies.ToArray())
+            var snapshot = _simulation.Enemies;
+            for (var i = snapshot.Count - 1; i >= 0; i--)
             {
-                if (enemy.IsDead)
+                var enemy = snapshot[i];
+                if (enemy == null || enemy.IsDead)
                 {
                     continue;
                 }
 
-                if (Vector2.Distance(center, enemy.transform.position) <= radius + enemy.Radius)
+                if (Vector2.Distance(center, enemy.Position) <= radius + enemy.Radius)
                 {
                     DamageEnemy(enemy, damage);
                 }
@@ -200,12 +202,11 @@ namespace App.Battle
             int pierce,
             float splash,
             float life,
-            EnemyUnit homingTarget = null,
+            EnemyState homingTarget = null,
             string spriteKey = null)
         {
-            var homingId = homingTarget != null ? homingTarget.GetInstanceID() : 0;
             var state = _simulation.SpawnPlayerProjectile(
-                position, direction, speed, damage, radius, pierce, splash, life, homingId);
+                position, direction, speed, damage, radius, pierce, splash, life, homingTarget);
 
             var go = BattleVisuals.Spawn(BattleVisuals.ProjectilePrefab, "Projectile", transform);
             var projectile = go.AddComponent<ProjectileUnit>();

@@ -9,7 +9,7 @@ namespace App.Battle
         private const int MaxJumps = 8;
         private const float JumpFalloff = 0.85f;
 
-        private readonly Dictionary<WeaponInstance, List<EnemyUnit>> _visited = new Dictionary<WeaponInstance, List<EnemyUnit>>();
+        private readonly Dictionary<WeaponInstance, List<EnemyState>> _visited = new Dictionary<WeaponInstance, List<EnemyState>>();
 
         public void Tick(WeaponRuntime host, WeaponInstance weapon, float deltaTime)
         {
@@ -62,27 +62,27 @@ namespace App.Battle
             _visited.Remove(weapon);
         }
 
-        private List<EnemyUnit> GetVisited(WeaponInstance weapon)
+        private List<EnemyState> GetVisited(WeaponInstance weapon)
         {
             if (_visited.TryGetValue(weapon, out var list))
             {
                 return list;
             }
 
-            list = new List<EnemyUnit>();
+            list = new List<EnemyState>();
             _visited[weapon] = list;
             return list;
         }
 
-        private static EnemyUnit FindNext(
+        private static EnemyState FindNext(
             WeaponRuntime host,
-            EnemyUnit from,
+            EnemyState from,
             Vector2 origin,
             float range,
             float chainRadius,
-            List<EnemyUnit> visited)
+            List<EnemyState> visited)
         {
-            EnemyUnit best = null;
+            EnemyState best = null;
             var bestDistance = float.MaxValue;
             var fromPosition = (Vector2)from.Position;
 

@@ -21,6 +21,10 @@ namespace App.Battle
         private readonly ContactSystem _contactSystem = new ContactSystem();
         private readonly ProjectileSystem _projectiles = new ProjectileSystem();
         private readonly PickupSystem _pickups;
+        private readonly SpawnSystem _spawns = new SpawnSystem();
+
+        /// <summary>敌人状态列表：模拟层唯一权威，表现层只读它来维护视图。</summary>
+        private readonly List<EnemyState> _enemies = new List<EnemyState>(256);
 
 
         public BattleSimulation(
@@ -43,8 +47,14 @@ namespace App.Battle
 
         public EnemySpawner Spawner { get; }
 
+        /// <summary>活着的敌人状态（权威列表）。</summary>
+        public IReadOnlyList<EnemyState> Enemies => _enemies;
+
+        /// <summary>给模拟编排用的可变视图（只有 Runner 组帧时读取，外部不要长期持有）。</summary>
+        internal List<EnemyState> EnemyStates => _enemies;
+
         /// <summary>本帧死亡的敌人（表现层销毁视图用）。</summary>
-        public IReadOnlyList<EnemyUnit> RemovedEnemies => _enemySystem.Removed;
+        public IReadOnlyList<EnemyState> RemovedEnemies => _enemySystem.Removed;
 
         /// <summary>当前地上的拾取物（表现层按它同步视图）。</summary>
         public IReadOnlyList<PickupState> ActivePickups => _pickups.States;
@@ -59,10 +69,10 @@ namespace App.Battle
             int pierce,
             float splash,
             float life,
-            int homingEnemyId)
+            EnemyState homingTarget)
         {
             return _projectiles.SpawnPlayer(
-                position, direction, speed, damage, radius, pierce, splash, life, 0f, homingEnemyId);
+                position, direction, speed, damage, radius, pierce, splash, life, 0f, homingTarget);
         }
 
         public ProjectileState SpawnEnemyProjectile(
@@ -79,14 +89,37 @@ namespace App.Battle
 
             // 刷怪用整场上下文（波次要能刷怪/刷 Boss/掉补给/报警），敌人规则只读敌人上下文。
             Spawner.Tick(deltaTime, Session.Elapsed, world.Battle);
-            _enemySystem.Tick(deltaTime, world.Enemies, world.EnemyUnits, world.Frozen);
-            _contactSystem.Tick(deltaTime, world.Enemies, world.EnemyUnits);
+            _enemySystem.Tick(deltaTime, world.Enemies, _enemies, world.Frozen);
+            _contactSystem.Tick(deltaTime, world.Enemies, _enemies);
 
             weapons.Tick(deltaTime);
 
             _projectiles.Tick(deltaTime, world.Battle);
             _pickups.Tick(deltaTime, Player.Position, true, world.MagnetRadius, world.Pickups);
 
+        }
+
+        /// <summary>按出生规则刷一只敌人（<see cref="SpawnSystem"/> 决定数值与点位）。</summary>
+        public EnemyState SpawnEnemy(int defId, Vector2 position, EliteAffix affix, Rect walkable)
+        {
+            var state = _spawns.Create(defId, position, affix, Session.Elapsed, walkable);
+            if (state != null)
+            {
+                _enemies.Add(state);
+            }
+
+            return state;
+        }
+
+        public EnemyState SpawnBoss(int defId, Vector2 position, Rect walkable)
+        {
+            var state = _spawns.CreateBoss(defId, position, walkable);
+            if (state != null)
+            {
+                _enemies.Add(state);
+            }
+
+            return state;
         }
 
         /// <summary>生成一枚拾取物（掉落由武器/敌人规则决定，这里只负责落地）。</summary>
@@ -98,6 +131,7 @@ namespace App.Battle
         /// <summary>清场：结算面板后面不该再留着弹体与掉落物。</summary>
         public void ClearTransients()
         {
+            _enemies.Clear();
             _projectiles.Clear();
             _pickups.Clear();
         }

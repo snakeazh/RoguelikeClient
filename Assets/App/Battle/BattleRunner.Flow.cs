@@ -73,7 +73,7 @@ namespace App.Battle
             if (Session.Elapsed >= BattleSession.RoundDuration)
             {
                 // 时间到：Boss 已死才算胜利，否则算超时失败（不然 Boss 没打死会一直打下去）。
-                var bossAlive = _enemies.Any(e => e != null && e.IsBoss && !e.IsDead);
+                var bossAlive = Enemies.Any(e => e != null && e.IsBoss && !e.IsDead);
                 Session.Finish(!bossAlive);
             }
         }

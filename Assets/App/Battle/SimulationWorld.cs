@@ -7,7 +7,7 @@ namespace App.Battle
     /// 一次模拟 tick 需要的外部视图。
     ///
     /// 之所以做成值类型集中传参：模拟层（<see cref="BattleSimulation"/>）不该知道
-    /// <see cref="BattleRunner"/> 的存在，只该知道「这一帧敌人列表长什么样、玩家输入是什么、
+    /// <see cref="BattleRunner"/> 的存在，只该知道「这一帧敌人状态列表长什么样、玩家输入是什么、
     /// 是否被沙漏冻结」。headless 回归时换成纯数据的实现即可。
     /// </summary>
     public readonly struct SimulationWorld
@@ -18,8 +18,8 @@ namespace App.Battle
 
         public readonly IEnemyContext Enemies;
 
-        /// <summary>本帧参与模拟的敌人（含视图，用于表现同步；模拟本身只读它们的 <see cref="EnemyUnit.State"/>）。</summary>
-        public readonly IReadOnlyList<EnemyUnit> EnemyUnits;
+        /// <summary>本帧参与模拟的敌人状态（权威列表，模拟层可直接增删）。</summary>
+        public readonly List<EnemyState> EnemyStates;
 
         public readonly IUnitInput Input;
 
@@ -34,7 +34,7 @@ namespace App.Battle
             IBattleContext battle,
             IPickupContext pickups,
             IEnemyContext enemies,
-            IReadOnlyList<EnemyUnit> enemyUnits,
+            List<EnemyState> enemyStates,
             IUnitInput input,
             Rect walkable,
             bool frozen,
@@ -43,7 +43,7 @@ namespace App.Battle
             Battle = battle;
             Pickups = pickups;
             Enemies = enemies;
-            EnemyUnits = enemyUnits;
+            EnemyStates = enemyStates;
             Input = input;
             Walkable = walkable;
             Frozen = frozen;
