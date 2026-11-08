@@ -16,20 +16,19 @@ namespace App.Battle
     public sealed partial class BattleRunner : MonoBehaviour
     {
         // ---------- 敌人 ----------
-        private void TickEnemies(float deltaTime)
+        /// <summary>表现层：规则已由 <see cref="BattleSimulation"/> 算完，这里只移除死亡并同步 Transform。</summary>
+        private void SyncEnemyViews(float deltaTime)
         {
-            var frozen = Session.Elapsed < _freezeUntil;
-
-            // 规则层：行为调度 + 位移 + 击退 + Boss 阶段，然后单独跑接触伤害。
-            _enemySystem.Tick(deltaTime, this, _enemies, frozen);
-            _contactSystem.Tick(deltaTime, this, _enemies);
-
-            for (var i = _enemies.Count - 1; i >= 0; i--)
+            if (_simulation != null)
             {
-                var enemy = _enemies[i];
-                if (enemy == null || enemy.IsDead)
+                var removed = _simulation.RemovedEnemies;
+                for (var i = 0; i < removed.Count; i++)
                 {
-                    _enemies.RemoveAt(i);
+                    var enemy = removed[i];
+                    if (enemy != null)
+                    {
+                        Destroy(enemy.gameObject);
+                    }
                 }
             }
 
@@ -45,13 +44,7 @@ namespace App.Battle
         }
 
         // ---------- 弹体 ----------
-        /// <summary>先让规则层推进所有弹体，再让表现层跟着状态走（表现不参与命中判定）。</summary>
-        private void TickProjectiles(float deltaTime)
-        {
-            _projectileSystem.Tick(deltaTime, this);
-            SyncProjectileViews();
-        }
-
+        /// <summary>表现层：规则层已经推进过弹体，这里只按状态销毁视图。</summary>
         private void SyncProjectileViews()
         {
             for (var i = _projectiles.Count - 1; i >= 0; i--)

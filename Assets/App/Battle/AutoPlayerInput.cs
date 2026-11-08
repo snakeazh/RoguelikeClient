@@ -10,7 +10,7 @@ namespace App.Battle
     public sealed class AutoPlayerInput : IUnitInput
     {
         private const float ThreatRadius = 4.5f;
-        private const float PickupRadius = 6f;
+        private const float PickupRadius = 14f;
         private const float WallMargin = 1.5f;
         private const float AutoDashRange = 1.4f;
 
@@ -35,7 +35,7 @@ namespace App.Battle
                 return;
             }
 
-            var position = (Vector2)player.transform.position;
+            var position = player.State.Position;
             var walkable = _runner.Walkable;
 
             Vector2 move;
@@ -51,7 +51,7 @@ namespace App.Battle
                     continue;
                 }
 
-                var offset = position - (Vector2)enemy.transform.position;
+                var offset = position - enemy.State.Position;
                 var distance = offset.magnitude;
                 if (distance > ThreatRadius)
                 {
@@ -69,6 +69,17 @@ namespace App.Battle
                 var tangent = new Vector2(-toCenter.y, toCenter.x).normalized;
                 var flee = threat.sqrMagnitude > 0.0001f ? threat.normalized : Vector2.zero;
                 move = flee + tangent * 0.9f;
+
+                // 不危险的时候顺手把经验捡了：只逃跑不捡经验，机器人永远升不了级，
+                // 冒烟就会跑成「Lv1 打满 100 秒」，验证不到升级与武器成长。
+                if (NearestEnemyDistance(position) > ThreatRadius * 0.5f)
+                {
+                    var loot = FindPickupDirection(position);
+                    if (loot != Vector2.zero)
+                    {
+                        move = loot * 0.9f + move * 0.3f;
+                    }
+                }
             }
             else
             {
@@ -107,7 +118,7 @@ namespace App.Battle
                     continue;
                 }
 
-                var delta = (Vector2)pickup.transform.position - position;
+                var delta = pickup.State.Position - position;
                 var distance = delta.magnitude;
                 if (distance > PickupRadius || distance >= best)
                 {
@@ -134,7 +145,7 @@ namespace App.Battle
                     continue;
                 }
 
-                var distance = Vector2.Distance(position, enemy.transform.position);
+                var distance = Vector2.Distance(position, enemy.State.Position);
                 if (distance < nearest)
                 {
                     nearest = distance;

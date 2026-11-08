@@ -37,6 +37,7 @@ namespace App.Battle
             return state;
         }
 
+
         public void Tick(float deltaTime, Vector2 playerPosition, bool hasPlayer, float magnetRadius, IPickupContext context)
         {
             for (var i = _states.Count - 1; i >= 0; i--)
@@ -92,6 +93,7 @@ namespace App.Battle
             }
 
             var distance = Vector2.Distance(state.Position, playerPosition);
+
             if (distance <= magnetRadius)
             {
                 state.Attracted = true;
@@ -99,9 +101,10 @@ namespace App.Battle
 
             if (state.Attracted)
             {
-                var direction = (playerPosition - state.Position).normalized;
+                // 用 MoveTowards 而不是 += direction*step：固定大步长（1/60 × 20 倍速）下后者会冲过玩家
+                // 落在另一侧，永远进不了拾取半径，表现就是「经验条不动」。
                 var speed = 10f + Mathf.Max(0f, 4f - distance) * 4f;
-                state.Position += direction * (speed * deltaTime);
+                state.Position = Vector2.MoveTowards(state.Position, playerPosition, speed * deltaTime);
                 distance = Vector2.Distance(state.Position, playerPosition);
             }
 
@@ -112,6 +115,7 @@ namespace App.Battle
 
             state.Collected = true;
             state.Done = true;
+
             ApplyEffects(state, context);
         }
 

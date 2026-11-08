@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace App.Battle
@@ -21,6 +22,11 @@ namespace App.Battle
         private readonly System.Collections.Generic.List<EnemyUnit> _buffer =
             new System.Collections.Generic.List<EnemyUnit>(256);
 
+        /// <summary>本帧被移除的敌人（死亡）：表现层据此销毁 GameObject，逻辑层下一帧不再看见它们。</summary>
+        public IReadOnlyList<EnemyUnit> Removed => _removed;
+
+        private readonly List<EnemyUnit> _removed = new List<EnemyUnit>(64);
+
         /// <summary>冻结（沙漏）时整段跳过 —— 冻结是「敌人全部不动」，包括行为和 Boss 弹幕。</summary>
         public void Tick(float deltaTime, IEnemyContext context, System.Collections.Generic.IReadOnlyList<EnemyUnit> enemies, bool frozen)
         {
@@ -28,6 +34,8 @@ namespace App.Battle
             {
                 return;
             }
+
+            _removed.Clear();
 
             // 先拷一份：行为里可能连锁击杀/分裂/爆炸，从而在遍历中增删 _enemies。
             _buffer.Clear();
@@ -45,6 +53,30 @@ namespace App.Battle
                 }
 
                 TickOne(enemy.State, deltaTime, context);
+            }
+
+            // 死亡清理放在规则层末尾：武器/弹体本帧不再以尸体为目标，表现层随后销毁视图。
+            for (var i = enemies.Count - 1; i >= 0; i--)
+            {
+                var enemy = enemies[i];
+                if (enemy == null || enemy.IsDead)
+                {
+                    if (enemy != null)
+                    {
+                        _removed.Add(enemy);
+                    }
+
+                    RemoveAt(enemies, i);
+                }
+            }
+        }
+
+        // IReadOnlyList 没有 RemoveAt，敌人列表实际是 List<EnemyUnit>
+        private static void RemoveAt(IReadOnlyList<EnemyUnit> enemies, int index)
+        {
+            if (enemies is List<EnemyUnit> list)
+            {
+                list.RemoveAt(index);
             }
         }
 

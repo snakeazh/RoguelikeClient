@@ -11,7 +11,7 @@ namespace App.Battle
     /// 具体开火逻辑在 <c>ShooterBehavior / AuraBehavior / CleaveBehavior / OrbitBehavior / ChainBehavior / BombBehavior</c>，
     /// 新增形态不用动这个文件。
     /// </summary>
-    public sealed class WeaponRuntime
+    public sealed class WeaponRuntime : ISimulationStep
     {
         public const float MinCooldown = 0.12f;
 

@@ -16,14 +16,6 @@ namespace App.Battle
     public sealed partial class BattleRunner : MonoBehaviour
     {
         // ---------- 拾取 ----------
-        /// <summary>规则层推进吸附/拾取/效果，表现层再跟着状态走。</summary>
-        private void TickPickups(float deltaTime)
-        {
-            var magnetRadius = 1.8f * Session.MagnetMultiplier;
-            _pickupSystem.Tick(deltaTime, PlayerPosition, Player != null, magnetRadius, this);
-            SyncPickupViews();
-        }
-
         private void SyncPickupViews()
         {
             for (var i = _pickups.Count - 1; i >= 0; i--)
@@ -47,7 +39,9 @@ namespace App.Battle
         // ---------- IPickupContext ----------
         public Vector3 PlayerPosition => Player != null ? Player.transform.position : Vector3.zero;
 
-        public IReadOnlyList<PickupState> ActivePickups => _pickupSystem.States;
+        public IReadOnlyList<PickupState> ActivePickups => _simulation != null ? _simulation.ActivePickups : EmptyPickups;
+
+        private static readonly PickupState[] EmptyPickups = new PickupState[0];
 
         void IPickupContext.ExplodeAt(Vector3 position, float radius, DamageInfo damage)
         {

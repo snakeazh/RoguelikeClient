@@ -204,8 +204,8 @@ namespace App.Battle
             string spriteKey = null)
         {
             var homingId = homingTarget != null ? homingTarget.GetInstanceID() : 0;
-            var state = _projectileSystem.SpawnPlayer(
-                position, direction, speed, damage, radius, pierce, splash, life, 0f, homingId);
+            var state = _simulation.SpawnPlayerProjectile(
+                position, direction, speed, damage, radius, pierce, splash, life, homingId);
 
             var go = BattleVisuals.Spawn(BattleVisuals.ProjectilePrefab, "Projectile", transform);
             var projectile = go.AddComponent<ProjectileUnit>();
@@ -215,7 +215,7 @@ namespace App.Battle
 
         public void SpawnEnemyProjectile(Vector3 position, Vector2 direction, float speed, float damage)
         {
-            var state = _projectileSystem.SpawnEnemy(position, direction, speed, damage, 0.16f);
+            var state = _simulation.SpawnEnemyProjectile(position, direction, speed, damage, 0.16f);
 
             var go = BattleVisuals.Spawn(BattleVisuals.ProjectilePrefab, "EnemyProjectile", transform);
             var projectile = go.AddComponent<ProjectileUnit>();
@@ -238,7 +238,7 @@ namespace App.Battle
                 return;
             }
 
-            var state = _pickupSystem.Spawn(def, amount, position);
+            var state = _simulation.SpawnPickup(def, amount, position);
             _pickups.Add(_pickupFactory.Create(state));
         }
 

@@ -18,9 +18,7 @@ namespace App.Battle
         public const float DashInvulnExtra = PlayerSim.DashInvulnExtra;
         public const float DashCooldown = PlayerSim.DashCooldown;
 
-        private readonly PlayerSim _sim = new PlayerSim();
 
-        private BattleSession _session;
         private SpriteRenderer _renderer;
         private SpriteRenderer _shadow;
         private SpriteRenderer _auraRenderer;
@@ -35,10 +33,6 @@ namespace App.Battle
         public bool IsDashing => State.IsDashing;
         public bool IsInvulnerable => State.IsInvulnerable;
 
-        /// <summary>
-        /// 谁在控制这个角色：默认玩家摇杆，冒烟时换成机器人，将来有回放/引导也可以换。
-        /// </summary>
-        public IUnitInput Input { get; set; }
 
         /// <summary>当前移动倍率（被鼻涕虫命中后短暂减速 50%）。</summary>
         public float SlowMultiplier => State.SlowMultiplier;
@@ -46,10 +40,8 @@ namespace App.Battle
         /// <summary>角色当前面向（单位向量，+Y 朝上）。停下来以后保持最后一次朝向。</summary>
         public Vector2 FacingDirection => State.FacingDirection;
 
-        public void Init(BattleSession session, Vector3 position)
+        public void Init(Vector3 position)
         {
-            _session = session;
-            State = new PlayerState { Position = position };
             transform.position = position;
             name = "Player";
 
@@ -115,6 +107,13 @@ namespace App.Battle
             }
         }
 
+        /// <summary>绑定模拟层产出的状态（<see cref="BattleSimulation.Player"/>），之后只读。</summary>
+        public void Bind(PlayerState state)
+        {
+            State = state;
+            transform.position = state.Position;
+        }
+
         public void ApplySlow(float duration)
         {
             State.ApplySlow(duration);
@@ -127,13 +126,11 @@ namespace App.Battle
         }
 
         /// <summary>
-        /// 每帧只做两件事：让 <see cref="PlayerSim"/> 推进逻辑，再把逻辑状态画出来。
-        /// 顺序很重要——先算完位置再同步 Transform 与排序，视觉才不会落后一帧。
+        /// 每帧只做表现：位置跟随模拟层算好的 <see cref="PlayerState"/>，再更新朝向/闪红/半透明。
+        /// 移动与冲刺规则在 <see cref="PlayerSim"/>，这里一行规则都不写。
         /// </summary>
-        public void Tick(float deltaTime, Rect arena)
+        public void SyncFromState(float deltaTime)
         {
-            _sim.Tick(State, _session, Input, deltaTime, arena);
-
             transform.position = State.Position;
             ApplySortOrder();
             SyncVisual(deltaTime);

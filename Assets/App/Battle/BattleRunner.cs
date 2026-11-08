@@ -28,21 +28,17 @@ namespace App.Battle
         private readonly List<ProjectileUnit> _projectiles = new List<ProjectileUnit>(128);
         private readonly List<PickupUnit> _pickups = new List<PickupUnit>(256);
 
-        /// <summary>弹体规则（P3-1）：自己持有逻辑状态，<see cref="_projectiles"/> 只负责表现。</summary>
-        private readonly ProjectileSystem _projectileSystem = new ProjectileSystem();
 
-        /// <summary>敌人规则（P3-1b）：行为调度 + 位移 + 击退 + Boss 阶段。</summary>
-        private readonly EnemySystem _enemySystem = new EnemySystem();
-
-        /// <summary>接触伤害（P3-1b）：和移动拆开，独立一套冷却与减速。</summary>
-        private readonly ContactSystem _contactSystem = new ContactSystem();
-
-        private EnemySpawner _spawner;
         private IEnemyFactory _enemyFactory;
         private IPickupFactory _pickupFactory;
-        private PickupEffects _pickupEffects;
-        private PickupSystem _pickupSystem;
+
+        /// <summary>战斗编排者（P3-1b 第 5 步）：持有玩家/刷怪/敌人/接触/弹体/拾取，Runner 只管表现与流程。</summary>
+        private BattleSimulation _simulation;
+
         private WeaponRuntime _weapons;
+
+        /// <summary>本局输入源：玩家摇杆或自动战斗机器人。</summary>
+        private IUnitInput _input;
         private IUIManager _ui;
         private Action _onExit;
         private BattleRecords _records;
@@ -94,10 +90,7 @@ namespace App.Battle
             set
             {
                 _autoPlay = value;
-                if (Player != null)
-                {
-                    Player.Input = value ? (IUnitInput)_autoInput : _playerInput;
-                }
+                _input = value ? (IUnitInput)_autoInput : _playerInput;
             }
         }
 
@@ -177,12 +170,12 @@ namespace App.Battle
 
             var playerGo = BattleVisuals.Spawn(BattleVisuals.PlayerPrefab, "PlayerRoot", transform);
             Player = playerGo.AddComponent<PlayerUnit>();
-            Player.Init(Session, _walkable.center);
+            Player.Init(_walkable.center);
 
             // 输入：玩家默认摇杆/键盘；开自动战斗时换成机器人写入的被动通道。
             _playerInput = new PlayerInput();
             _autoInput = new AutoPlayerInput(this);
-            Player.Input = AutoPlay ? (IUnitInput)_autoInput : _playerInput;
+            _input = AutoPlay ? (IUnitInput)_autoInput : _playerInput;
 
             // 镜头跟着玩家，并且只在地图范围内移动。
             AttachCameraFollow(playerGo.transform);
@@ -196,9 +189,11 @@ namespace App.Battle
             // 生成器：敌人/拾取物各自一个工厂（MonoBehaviour 不能用构造器），波次策略按默认注册表注入。
             _enemyFactory = new EnemyFactory(this, transform);
             _pickupFactory = new PickupFactory(transform);
-            _pickupEffects = PickupEffects.CreateDefault();
-            _pickupSystem = new PickupSystem(_pickupEffects);
-            _spawner = new EnemySpawner(WaveStepRegistry.CreateDefault(), WaveDef.All.Values);
+
+            // 规则层由 BattleSimulation 组合：玩家位移 / 刷怪 / 敌人 / 接触 / 弹体 / 拾取。
+            _simulation = new BattleSimulation(
+                Session, _walkable.center, WaveStepRegistry.CreateDefault(), WaveDef.All.Values, PickupEffects.CreateDefault());
+            Player.Bind(_simulation.Player);
 
             _weapons = new WeaponRuntime();
             _weapons.Init(this, Session);
@@ -281,16 +276,21 @@ namespace App.Battle
                 deltaTime = 0.1f;
             }
 
-            // 玩家输入在 PlayerUnit.Tick 内部读取（它持有 IUnitInput），这里不再代读。
-            Player.Tick(deltaTime, _walkable);
-            Session.TickTime(deltaTime);
+            // 规则层：一次 Tick 走完玩家位移 → 刷怪 → 敌人 → 接触 → 武器 → 弹体 → 拾取。
+            var world = new SimulationWorld(
+                this,
+                this,
+                this,
+                _enemies,
+                _input,
+                _walkable,
+                Session.Elapsed < _freezeUntil,
+                1.8f * Session.MagnetMultiplier);
 
-            _spawner.Tick(deltaTime, Session.Elapsed, this);
+            _simulation.Tick(deltaTime, world, _weapons);
 
-            TickEnemies(deltaTime);
-            _weapons.Tick(deltaTime);
-            TickProjectiles(deltaTime);
-            TickPickups(deltaTime);
+            // 表现层：只把状态同步到 Transform / 精灵，不参与任何判定。
+            SyncBattleViews(deltaTime);
 
             if (Session.IsOver)
             {
@@ -312,6 +312,14 @@ namespace App.Battle
                 _hudTimer = 0.1f;
                 StateChanged?.Invoke();
             }
+        }
+
+        /// <summary>把本帧算好的状态同步到所有视图（敌人/弹体/拾取物）。</summary>
+        private void SyncBattleViews(float deltaTime)
+        {
+            SyncEnemyViews(deltaTime);
+            SyncProjectileViews();
+            SyncPickupViews();
         }
 
         public void Toast(string message)
@@ -341,7 +349,7 @@ namespace App.Battle
             }
 
             _projectiles.Clear();
-            _projectileSystem.Clear();
+            _simulation?.ClearTransients();
 
             foreach (var pickup in _pickups)
             {
@@ -352,7 +360,7 @@ namespace App.Battle
             }
 
             _pickups.Clear();
-            _pickupSystem?.Clear();
+            _simulation?.ClearTransients();
 
             _weapons?.Dispose();
         }

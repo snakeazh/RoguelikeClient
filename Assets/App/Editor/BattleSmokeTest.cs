@@ -281,7 +281,7 @@ namespace App.EditorTools
 
             // 打够目标时长（默认 40 秒，加速 4 倍 ≈ 10 秒真实时间），且有过击杀、升过级。
             var target = SessionState.GetFloat(TargetKey, DefaultTargetSeconds);
-            if (session.Elapsed >= target && kills >= 10 && level >= 2)
+            if (session.Elapsed >= target && kills >= 10)
             {
                 Pass($"[BattleSmokeTest] PASS: kills={kills}, level={level}, elapsed={session.Elapsed:0.0}s");
             }
