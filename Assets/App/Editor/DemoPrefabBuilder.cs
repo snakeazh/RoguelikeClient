@@ -161,8 +161,18 @@ namespace App.EditorTools
                 TextAlignmentOptions.TopLeft);
 
             CreateText(rootRect, font, "Status", "点击按钮开始体验", 24, FontStyles.Normal,
-                new Vector2(0.5f, 0f), new Vector2(0f, 420f), new Vector2(1100f, 50f),
+                new Vector2(0.5f, 0f), new Vector2(0f, 590f), new Vector2(1100f, 50f),
                 new Color(1f, 0.85f, 0.4f));
+
+            // 选人：两张卡片 + 当前角色摘要。卡片文字两行（名字 / 血·速·本命武器）。
+            CreateText(rootRect, font, "CharacterInfo", "当前角色：游侠", 26, FontStyles.Normal,
+                new Vector2(0.5f, 0.5f), new Vector2(0f, -80f), new Vector2(1000f, 50f),
+                new Color(0.7f, 0.85f, 1f));
+
+            CreateButton(rootRect, font, "BtnCharacterRanger", "游侠\n90 血 · 5.4 速 · ★长弓",
+                new Vector2(-250f, 380f), new Vector2(400f, 150f));
+            CreateButton(rootRect, font, "BtnCharacterWarrior", "剑士\n125 血 · 4.6 速 · ★大剑",
+                new Vector2(250f, 380f), new Vector2(400f, 150f));
 
             CreateButton(rootRect, font, "BtnBattle", "开始战斗", new Vector2(0f, 260f), new Vector2(420f, 92f));
             CreateButton(rootRect, font, "BtnDialog", "确认对话框", new Vector2(-260f, 110f));

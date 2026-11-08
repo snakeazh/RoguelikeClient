@@ -22,19 +22,29 @@ namespace App.UI.Home
         private readonly IAudioService _audio;
         private readonly BattleLauncher _battle;
         private readonly BattleRecords _records;
+        private readonly CharacterSelection _characters;
 
-        public HomeViewModel(IUIManager ui, ToastService toast, IAudioService audio, BattleLauncher battle, BattleRecords records)
+        public HomeViewModel(
+            IUIManager ui,
+            ToastService toast,
+            IAudioService audio,
+            BattleLauncher battle,
+            BattleRecords records,
+            CharacterSelection characters)
         {
             _ui = ui;
             _toast = toast;
             _audio = audio;
             _battle = battle;
             _records = records;
+            _characters = characters;
 
             OpenDialogCommand = new RelayCommand(() => Run(OpenDialogAsync));
             ShowToastCommand = new RelayCommand(ShowToast);
             PlayClickCommand = new RelayCommand(PlayClick);
             StartBattleCommand = new RelayCommand(StartBattle);
+            SelectRangerCommand = new RelayCommand(() => SelectCharacter(1));
+            SelectWarriorCommand = new RelayCommand(() => SelectCharacter(2));
         }
 
         public ObservableProperty<string> Title { get; } =
@@ -51,6 +61,10 @@ namespace App.UI.Home
         public ObservableProperty<string> Status { get; } =
             new ObservableProperty<string>("点击按钮开始体验");
 
+        /// <summary>当前角色摘要（血/速/本命武器），选人按钮点了会刷新。</summary>
+        public ObservableProperty<string> CharacterInfo { get; } =
+            new ObservableProperty<string>(string.Empty);
+
         public IRelayCommand OpenDialogCommand { get; }
 
         public IRelayCommand ShowToastCommand { get; }
@@ -59,10 +73,38 @@ namespace App.UI.Home
 
         public IRelayCommand StartBattleCommand { get; }
 
+        public IRelayCommand SelectRangerCommand { get; }
+
+        public IRelayCommand SelectWarriorCommand { get; }
+
         protected override Task OnOpen(object args)
         {
             RefreshContent();
+            RefreshCharacterInfo();
             return Task.CompletedTask;
+        }
+
+        private void SelectCharacter(int characterId)
+        {
+            _characters.Select(characterId);
+            _audio.PlayUiClick();
+            RefreshCharacterInfo();
+            Status.Value = $"已选择 {_characters.Selected?.Name}，点「开始战斗」进局";
+        }
+
+        private void RefreshCharacterInfo()
+        {
+            var def = _characters.Selected;
+            if (def == null)
+            {
+                CharacterInfo.Value = "角色表未加载";
+                return;
+            }
+
+            var weapon = WeaponDef.Get(def.InnateWeaponId);
+            var weaponName = weapon != null ? weapon.Name : "无";
+            CharacterInfo.Value =
+                $"当前角色：{def.Name} · {def.MaxHp:0} 血 · {def.MoveSpeed:0.0} 速 · ★{weaponName}";
         }
 
         private void RefreshContent()

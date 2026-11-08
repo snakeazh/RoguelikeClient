@@ -17,11 +17,13 @@ namespace App.Battle
     public sealed class BattleLauncher
     {
         private readonly IUIManager _ui;
+        private readonly CharacterSelection _characters;
         private bool _starting;
 
-        public BattleLauncher(IUIManager ui)
+        public BattleLauncher(IUIManager ui, CharacterSelection characters)
         {
             _ui = ui;
+            _characters = characters;
         }
 
         public bool IsRunning => BattleRunner.Instance != null;
@@ -48,7 +50,7 @@ namespace App.Battle
 
                 var go = new GameObject("Battle");
                 var runner = go.AddComponent<BattleRunner>();
-                runner.Begin(_ui, OnBattleExit);
+                runner.Begin(_ui, OnBattleExit, 0, _characters.SelectedId);
 
                 await _ui.Open(new BattleHudViewModel(runner));
                 AppLog.Info(LogChannel.Game, "[Battle] launcher started");

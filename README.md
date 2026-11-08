@@ -122,6 +122,9 @@ camelCase JSON、401 自动清 token、超时 15s、失败抛 `GameApiException(
 `Assets/App/Battle/战斗系统.md`，这里只列要点：
 
 - 入口：`BattleLauncher.StartAsync()`（关首页 → 建 `BattleRunner` → 开 `BattleHud`）；结算后自动回首页。
+- 角色：首页两张卡片选人（游侠 90 血 / 5.4 速 / ★长弓，剑士 125 血 / 4.6 速 / ★大剑），
+  选择存 `battle.character.selected.v1`；角色自带的兵器不占武器槽，可升级、可进化。
+  数值在 `Assets/Res/Config/Battle/Characters.json`，改表即改角色。
 - 主循环：`Assets/App/Battle/BattleRunner.cs`；纯数据在 `BattleSession`；升级三选一在 `ChoiceService`。
 - 操作：左半屏任意位置按下即出现动态摇杆；右下 260×260 区域点按冲刺（2.5 身位 / 0.2s / 无敌 0.3s / CD 3s）。
 - 内容：8 把武器（投射/环绕/追踪/光环/扇形剑气/连锁闪电/定时炸弹）+ 8 把进化武器、
@@ -129,8 +132,8 @@ camelCase JSON、401 自动清 token、超时 15s、失败抛 `GameApiException(
 - 进化：武器满级且配套被动满级后，开宝箱即进化（如「回旋刃 + 大弹弓」→ 千刃轮）。
 - 局外记录：`BattleRecords` 存在 `battle.meta.*.v1`（累计金币 / 出战 / 胜利 / 最高击杀 / 最长存活），
   首页会显示这行小结。
-- 配置：`Assets/Res/Config/Battle/{Enemies,Weapons,Passives,Waves,Levels}.json`，
-  加武器/敌人/波次/进化都只改 json（+ 新形态才需要加枚举分支），不用动 UI。
+- 配置：`Assets/Res/Config/Battle/{Enemies,Weapons,Passives,Waves,Levels,Characters}.json`，
+  加武器/敌人/波次/进化/角色都只改 json（+ 新形态才需要加枚举分支），不用动 UI。
 - 美术（2D 精灵）：战斗内所有角色都是 SpriteRenderer 精灵，资源在
   `Assets/Res/Battle/Sprites/`、显示用预制体在 `Assets/Res/Battle/Prefabs/`，由 `BattleVisuals` 统一加载；
   精灵缺失时自动退回 `PlaceholderArt` 的纯色图形，所以删掉美术也不会报错。

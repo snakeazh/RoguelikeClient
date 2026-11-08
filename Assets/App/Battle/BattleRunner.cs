@@ -99,14 +99,14 @@ namespace App.Battle
             }
         }
 
-        public void Begin(IUIManager ui, Action onExit, int seed = 0)
+        public void Begin(IUIManager ui, Action onExit, int seed = 0, int characterId = 0)
         {
             _ui = ui;
             _onExit = onExit;
             Session = new BattleSession(seed);
 
             // 角色：决定血量、移速和本命武器；缺表时 SetCharacter 不生效，退回 100 血 / 5 速 / 长弓。
-            var character = CharacterDef.Get(BattleSession.DefaultCharacterId);
+            var character = CharacterDef.Get(characterId > 0 ? characterId : BattleSession.DefaultCharacterId);
             if (character != null)
             {
                 Session.SetCharacter(character);

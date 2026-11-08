@@ -99,8 +99,12 @@ namespace App.Bootstrap
             _ui = UIFramework.Create(_services.Container);
             _services.Register(new ToastService(_services.Resolve<IUINavigator>()));
 
+            // 角色选择（存 ISaveService，首页卡片与战斗入口共用）。
+            var characters = new CharacterSelection(save);
+            _services.Register(characters);
+
             // 战斗入口（依赖 IUIManager，必须在 UIFramework.Create 之后注册）。
-            _services.Register(new BattleLauncher(_ui.UI));
+            _services.Register(new BattleLauncher(_ui.UI, characters));
 
             // 局外记录（金币 / 次数 / 最高纪录），依赖 ISaveService。
             _services.Register(new BattleRecords(save));
