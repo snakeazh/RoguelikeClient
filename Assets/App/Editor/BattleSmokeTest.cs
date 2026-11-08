@@ -32,6 +32,7 @@ namespace App.EditorTools
         private const string SpeedKey = "BattleSmoke.Speed";
         private const string ImmortalKey = "BattleSmoke.Immortal";
         private const string ResultSeenKey = "BattleSmoke.ResultSeen";
+        private const string SummaryKey = "BattleSmoke.Summary";
 
         private const string CharacterKey = "BattleSmoke.Character";
 
@@ -197,6 +198,12 @@ namespace App.EditorTools
             var runner = AppServices.Resolve<App.Battle.BattleLauncher>().Runner;
             if (runner == null || runner.Session == null)
             {
+                // 点了结算界面的「返回」之后 launcher 会销毁 runner：用点之前存好的快照收尾。
+                if (SessionState.GetBool(ResultSeenKey, false) && SessionState.GetInt(PhaseKey, 0) >= 1)
+                {
+                    Pass(SessionState.GetString(SummaryKey, "[BattleSmokeTest] battle ended"));
+                }
+
                 return;
             }
 
@@ -234,13 +241,15 @@ namespace App.EditorTools
 
             if (session.IsOver)
             {
-                // 结算界面：确认能打开，然后点「返回」走回首页的流程（批量模式下不会有人点）。
+                // 结算界面：先把结果快照存进 SessionState（点「返回」之后 launcher 会销毁 runner，
+                // 下一帧就再也读不到 session 了），再点「返回」走回首页的流程。
                 var result = ui.FindOpen<BattleResultViewModel>();
                 if (result != null)
                 {
                     if (!SessionState.GetBool(ResultSeenKey, false))
                     {
                         SessionState.SetBool(ResultSeenKey, true);
+                        SessionState.SetString(SummaryKey, BuildSummary(session));
                         Debug.Log("[BattleSmokeTest] result screen opened");
                         result.ReturnCommand.Execute();
                     }
@@ -253,24 +262,7 @@ namespace App.EditorTools
                     return; // 等结算界面出现
                 }
 
-                var summary = new StringBuilder();
-                summary.Append("[BattleSmokeTest] battle ended: ");
-                summary.Append(session.IsVictory ? "victory" : "defeat");
-                summary.Append($", kills={kills}, level={level}, time={session.Elapsed:0.0}s");
-
-                summary.Append(" | weapons:");
-                foreach (var weapon in session.Weapons)
-                {
-                    summary.Append(' ').Append(weapon.Def.Name).Append("(Lv").Append(weapon.Level).Append(')');
-                }
-
-                summary.Append(" | passives:");
-                foreach (var passive in session.Passives)
-                {
-                    summary.Append(' ').Append(passive.Def.Name).Append("(Lv").Append(passive.Level).Append(')');
-                }
-
-                Pass(summary.ToString());
+                Pass(SessionState.GetString(SummaryKey, BuildSummary(session)));
                 return;
             }
 
@@ -280,6 +272,32 @@ namespace App.EditorTools
             {
                 Pass($"[BattleSmokeTest] PASS: kills={kills}, level={level}, elapsed={session.Elapsed:0.0}s");
             }
+        }
+
+        /// <summary>
+        /// 结算摘要。在点「返回」之前调用并塞进 SessionState —— 之后 launcher 会销毁 runner，
+        /// 再想读 Session 就晚了（以前能用静态 Instance，P2 去掉单例后不行）。
+        /// </summary>
+        private static string BuildSummary(BattleSession session)
+        {
+            var summary = new StringBuilder();
+            summary.Append("[BattleSmokeTest] battle ended: ");
+            summary.Append(session.IsVictory ? "victory" : "defeat");
+            summary.Append($", kills={session.Kills}, level={session.Level}, time={session.Elapsed:0.0}s");
+
+            summary.Append(" | weapons:");
+            foreach (var weapon in session.AllWeapons)
+            {
+                summary.Append(' ').Append(weapon.Def.Name).Append("(Lv").Append(weapon.Level).Append(')');
+            }
+
+            summary.Append(" | passives:");
+            foreach (var passive in session.Passives)
+            {
+                summary.Append(' ').Append(passive.Def.Name).Append("(Lv").Append(passive.Level).Append(')');
+            }
+
+            return summary.ToString();
         }
 
         /// <summary>读取命令行参数，例如 -battleSeconds 300 -battleSpeed 20。</summary>
