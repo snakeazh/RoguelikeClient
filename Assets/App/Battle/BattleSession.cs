@@ -31,9 +31,12 @@ namespace App.Battle
         public const int BossEnemyId = 100;
 
         /// <summary>
-        /// 默认本命武器（角色表落地前先写死长弓）。本命武器开局就有、不占 <see cref="MaxWeaponSlots"/> 的槽位。
+        /// 默认本命武器（角色表缺失时用长弓）。本命武器开局就有、不占 <see cref="MaxWeaponSlots"/> 的槽位。
         /// </summary>
         public const int DefaultInnateWeaponId = 1;
+
+        /// <summary>默认角色 Id（选人界面落地前固定为 1 号游侠）。</summary>
+        public const int DefaultCharacterId = 1;
 
         private readonly List<WeaponInstance> _weapons = new List<WeaponInstance>(MaxWeaponSlots);
         private readonly List<PassiveInstance> _passives = new List<PassiveInstance>(MaxPassiveSlots);
@@ -79,10 +82,41 @@ namespace App.Battle
             Hp = MaxHp;
         }
 
-        // ---------- 派生属性（被动叠加）----------
-        public float MaxHp => 100f * (1f + PassiveValue(PassiveKind.MaxHp));
+        // ---------- 派生属性（角色 + 被动叠加）----------
+        /// <summary>没配角色表时的兜底数值，和旧版本保持一致。</summary>
+        public const float FallbackMaxHp = 100f;
 
-        public float MoveSpeed => 5f * (1f + PassiveValue(PassiveKind.MoveSpeed));
+        public const float FallbackMoveSpeed = 5f;
+
+        /// <summary>当前角色；<c>null</c> 表示没读到角色表，退回旧版数值。</summary>
+        public CharacterDef Character { get; private set; }
+
+        public float MaxHp => (Character != null ? Character.MaxHp : FallbackMaxHp)
+                              * (1f + PassiveValue(PassiveKind.MaxHp));
+
+        public float MoveSpeed => (Character != null ? Character.MoveSpeed : FallbackMoveSpeed)
+                                  * (1f + PassiveValue(PassiveKind.MoveSpeed));
+
+        /// <summary>本命武器 Id：角色表优先，没角色就用默认（长弓）。</summary>
+        public int InnateWeaponId => Character != null && Character.InnateWeaponId > 0
+            ? Character.InnateWeaponId
+            : DefaultInnateWeaponId;
+
+        /// <summary>
+        /// 选定角色：只在本局开始前调用一次，顺手把血量补满（不同角色最大血量不同，
+        /// 构造时按兜底值算过的 <see cref="Hp"/> 会过时）。
+        /// </summary>
+        internal void SetCharacter(CharacterDef def)
+        {
+            if (def == null)
+            {
+                return;
+            }
+
+            Character = def;
+            Hp = MaxHp;
+            AppLog.Info(LogChannel.Game, $"[Battle] character {def.Name} (hp {def.MaxHp}, speed {def.MoveSpeed})");
+        }
 
         public float DamageMultiplier => 1f + PassiveValue(PassiveKind.Damage);
 

@@ -105,8 +105,27 @@ namespace App.Battle
             _onExit = onExit;
             Session = new BattleSession(seed);
 
-            // 角色自带的武器：开局就有，不占武器槽（角色表落地前先固定长弓）。
-            Session.EquipInnate(WeaponDef.Get(BattleSession.DefaultInnateWeaponId));
+            // 角色：决定血量、移速和本命武器；缺表时 SetCharacter 不生效，退回 100 血 / 5 速 / 长弓。
+            var character = CharacterDef.Get(BattleSession.DefaultCharacterId);
+            if (character != null)
+            {
+                Session.SetCharacter(character);
+            }
+            else
+            {
+                AppLog.Warn(LogChannel.Game, "[Battle] character table missing, falling back to default stats");
+            }
+
+            // 角色自带的武器：开局就有，不占武器槽。
+            var innate = WeaponDef.Get(Session.InnateWeaponId);
+            if (innate != null)
+            {
+                Session.EquipInnate(innate);
+            }
+            else
+            {
+                AppLog.Warn(LogChannel.Game, $"[Battle] innate weapon (Id={Session.InnateWeaponId}) missing in Weapons.json");
+            }
 
             SetupMap();
 

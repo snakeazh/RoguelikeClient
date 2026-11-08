@@ -1,0 +1,22 @@
+[
+  {
+    "Id": 1,
+    "Name": "游侠",
+    "Title": "轻装远程",
+    "InnateWeaponId": 1,
+    "MaxHp": 90,
+    "MoveSpeed": 5.4,
+    "Sprite": "",
+    "Description": "自带长弓，血薄但跑得快，适合躲着打。"
+  },
+  {
+    "Id": 2,
+    "Name": "剑士",
+    "Title": "重装近战",
+    "InnateWeaponId": 3,
+    "MaxHp": 125,
+    "MoveSpeed": 4.6,
+    "Sprite": "",
+    "Description": "自带大剑，血厚、走位笨，靠扇形刀光清场。"
+  }
+]

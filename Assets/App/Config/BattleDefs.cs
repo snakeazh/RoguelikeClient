@@ -156,6 +156,31 @@ namespace App.Config
         public int ExpToNext = 5;
     }
 
+    /// <summary>
+    /// 可选角色：决定开局血量、移速和自带的兵器（本命武器）。
+    /// 缺表时 <see cref="BattleSession"/> 会退回 100 血 / 5 速 / 长弓，不会崩。
+    /// </summary>
+    [Serializable]
+    public sealed class CharacterDef : ConfigRowBase<CharacterDef>
+    {
+        public string Name = string.Empty;
+
+        /// <summary>选人界面卡片的副标题，例如「轻装远程」。</summary>
+        public string Title = string.Empty;
+
+        /// <summary>自带兵器的 WeaponDef Id（不占武器槽）。</summary>
+        public int InnateWeaponId = 1;
+
+        public float MaxHp = 100f;
+
+        public float MoveSpeed = 5f;
+
+        /// <summary>选人卡片的立绘精灵名（Assets/Res/Battle/Sprites/&lt;Sprite&gt;.png），留空用圆形占位。</summary>
+        public string Sprite = string.Empty;
+
+        public string Description = string.Empty;
+    }
+
     /// <summary>精英词缀，与文档一致；数值在 BattleRunner 里按词缀套用。</summary>
     public enum EliteAffix
     {

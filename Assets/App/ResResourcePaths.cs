@@ -50,6 +50,9 @@ namespace App.Resources
         /// <summary>战斗：升级经验表。</summary>
         public const string BattleLevels = "Config/Battle/Levels";
 
+        /// <summary>战斗：可选角色表（初始血量、移速、本命武器）。</summary>
+        public const string BattleCharacters = "Config/Battle/Characters";
+
         // ---------- 音频 ----------
         public const string SfxUiClick = "Audio/Effect/ui_click_03";
 
