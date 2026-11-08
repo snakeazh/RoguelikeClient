@@ -1,18 +1,11 @@
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using App.Audio;
-using App.Battle;
-using App.Config;
+using App.Bootstrap.Modules;
 using App.Net;
-using App.Resources;
-using App.UI;
 using App.UI.Home;
-using Framework.Assets;
 using Framework.Log;
-using Framework.Save;
 using Framework.UI;
-using Framework.UI.Navigation;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
@@ -21,12 +14,12 @@ namespace App.Bootstrap
     /// <summary>
     /// 唯一启动入口：挂在启动场景的一个空物体上即可（Demo 场景 Scenes/Main）。
     ///
-    /// 固定启动顺序，改动顺序前先想清楚依赖：
-    ///   AppServices.Create → ResourceFramework → SaveFramework → AudioService
-    ///   → HttpApiClient → ConfigTables → 预载 UIRoot → UIFramework.Create
-    ///   → 注册 ToastService → 打开首屏。
-    /// UIFramework.Create 要求 IResourceService 已 Initialize 且 "UI/UIRoot" 已在缓存里，
-    /// 所以上面必须先 await LoadAsync。新增业务服务请注册在 ConfigTables 之后、UIFramework 之前。
+    /// 启动顺序 = <see cref="_modules"/> 的注册顺序，改顺序就改 Add 的顺序：
+    ///   Resource → Save → Audio → Net → Config → UI → BattleServices。
+    /// 依赖关系（改之前先确认）：
+    ///   · UI 需要 IResourceService 已 Initialize、且 "UI/UIRoot" 已进缓存；
+    ///   · Config 要在 UI 之前（ViewModel 构造函数经常直接读表）；
+    ///   · BattleLauncher 依赖 IUIManager，必须排在 UI 之后。
     /// </summary>
     public sealed class AppBootstrap : MonoBehaviour
     {
@@ -41,8 +34,7 @@ namespace App.Bootstrap
         [SerializeField] private int targetFrameRate = 60;
 
         private AppServicesHost _services;
-        private ResourceFrameworkContext _resources;
-        private UIFrameworkContext _ui;
+        private ModuleHost _modules;
 
         private async void Start()
         {
@@ -69,49 +61,22 @@ namespace App.Bootstrap
             // 1. 服务容器（DontDestroyOnLoad，跨场景常驻）。
             _services = AppServices.Create();
 
-            // 2. 资源框架：Editor/PC 直读 Assets/Res，打包后走 AssetBundle。
-            _resources = ResourceFramework.Create();
-            await _resources.InitializeAsync();
-            _services.Register(_resources.Resources);
+            // 2. 模块按顺序初始化（每个模块自己往容器里注册服务）。
+            _modules = new ModuleHost(_services.Container)
+                .Add(new ResourceModule())
+                .Add(new SaveModule())
+                .Add(new AudioModule(_services.transform))
+                .Add(new NetModule())
+                .Add(new ConfigModule())
+                .Add(new UiModule())
+                .Add(new BattleServicesModule());
 
-            // 3. 存档（Editor/PC 用 PlayerPrefs；微信小游戏编译开关下自动切 WeChatSave）。
-            var save = SaveFramework.Create();
-            _services.Register(save);
+            await _modules.InitAllAsync();
 
-            // 4. 音频：AudioService 自己建 BGM/SFX 子物体并还原开关状态。
-            var audioHost = new GameObject("Audio");
-            audioHost.transform.SetParent(_services.transform, false);
-            var audio = new AudioService(save, audioHost);
-            audio.Load();
-            _services.Register<IAudioService>(audio);
-            await audio.PreloadUiClickAsync(_resources.Resources);
-
-            // 5. 网络：只建通用 HTTP 客户端，业务端点各自封装在 App/Net 下。
-            _services.Register(new HttpApiClient(save));
-
-            // 6. 配置表（ViewModel 构造函数经常直接读表，必须早于 UI）。
-            await ConfigTables.LoadAsync(_resources.Resources);
-
-            // 7. UIRoot 必须先进入资源缓存，UIFramework.Create 不做同步阻塞加载。
-            await _resources.Resources.LoadAsync<GameObject>(ResResourcePaths.UIRoot);
-
-            // 8. UI：注册 UIRoot / Navigator / DialogService / 自动注册所有 [AutoScreen]。
-            _ui = UIFramework.Create(_services.Container);
-            _services.Register(new ToastService(_services.Resolve<IUINavigator>()));
-
-            // 角色选择（存 ISaveService，首页卡片与战斗入口共用）。
-            var characters = new CharacterSelection(save);
-            _services.Register(characters);
-
-            // 战斗入口（依赖 IUIManager，必须在 UIFramework.Create 之后注册）。
-            _services.Register(new BattleLauncher(_ui.UI, characters));
-
-            // 局外记录（金币 / 次数 / 最高纪录），依赖 ISaveService。
-            _services.Register(new BattleRecords(save));
-
-            // 9. 首屏。
+            // 3. 首屏。
+            var ui = _services.Resolve<IUIManager>();
             var home = _services.Container.Resolve<HomeViewModel>();
-            await _ui.UI.Open(home);
+            await ui.Open(home);
 
             // 排查用：autocam.flag 存在时自动进战斗（配合 BattleRunner 的自动战斗）。
             // 发布包里 DebugAutoplayHook.Enabled 恒为 false，StartAutoplay 是空实现，不需要 #if。
@@ -169,9 +134,8 @@ namespace App.Bootstrap
 
         private void OnDestroy()
         {
-            _resources?.ReleaseAll();
-            _resources = null;
-            _ui = null;
+            _modules?.DisposeAll();
+            _modules = null;
         }
     }
 }

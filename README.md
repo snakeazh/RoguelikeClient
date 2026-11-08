@@ -43,23 +43,23 @@ Unity 版本：`2022.3.62f3`（见 `ProjectSettings/ProjectVersion.txt`）。
 
 ## 2. 启动流程
 
-入口 `Assets/App/Bootstrap/AppBootstrap.cs`，顺序固定：
+入口 `Assets/App/Bootstrap/AppBootstrap.cs`。它只做三件事：建服务容器 → 按顺序跑模块 → 打开首屏。
+**启动顺序 = `AppBootstrap` 里 `ModuleHost.Add(...)` 的顺序**：
 
-```
-AppServices.Create()                    // DontDestroyOnLoad 的服务容器
-ResourceFramework.Create() + InitializeAsync()
-SaveFramework.Create()
-AudioService(save, host).Load() + PreloadUiClickAsync()
-HttpApiClient(save)
-ConfigTables.LoadAsync(resources)       // ViewModel 构造函数常直接读表，必须早于 UI
-resources.LoadAsync<GameObject>("UI/UIRoot")   // UIFramework.Create 要求已在缓存里
-UIFramework.Create(container)           // 注册 UIRoot / Navigator / DialogService，扫描 [AutoScreen]
-ToastService
-ui.Open(HomeViewModel)
-```
+| 模块 | 文件 | 注册的服务 | 依赖 |
+|---|---|---|---|
+| Resource | `Assets/App/Bootstrap/Modules/ResourceModule.cs` | `IResourceService` | — |
+| Save | `SaveModule.cs` | `ISaveService` | — |
+| Audio | `AudioModule.cs` | `IAudioService` | Save, Resource |
+| Net | `NetModule.cs` | `HttpApiClient` | Save |
+| Config | `ConfigModule.cs` | （静态配置表） | Resource |
+| UI | `UiModule.cs` | `IUIManager` / `IUINavigator` / `IDialogService` / `ToastService` | Resource（且 `UI/UIRoot` 已进缓存） |
+| BattleServices | `BattleServicesModule.cs` | `CharacterSelection` / `BattleRecords` / `BattleLauncher` | Save, UI |
 
-新增业务服务注册在 `ConfigTables` 之后、`UIFramework.Create` 之前；`UIFramework.Create` 之后
-容器里才有 `IUIManager` / `IUINavigator` / `IDialogService`。
+`Config` 必须在 `UI` 之前（ViewModel 构造函数经常直接读表）；`BattleLauncher` 依赖 `IUIManager`，
+所以 `BattleServices` 排在 `UI` 之后。加一个新系统就是写一个 `IGameModule` 再 `Add` 一行，
+`ModuleHost` 会按顺序 `InitAsync`、退出时按逆序 `Dispose`，每个模块的耗时打一条
+`[Boot] module X ready in N ms`。
 
 任何一步抛异常都会 `AppLog.Exception` 并停在启动场景，方便定位，不会带着半个容器进首页。
 
