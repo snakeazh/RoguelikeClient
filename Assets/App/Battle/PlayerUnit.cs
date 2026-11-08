@@ -3,19 +3,22 @@ using UnityEngine;
 namespace App.Battle
 {
     /// <summary>
-    /// 玩家单位：左半屏摇杆移动 + 右下冲刺（位移 + 无敌帧）。
-    /// 玩家不做任何攻击，伤害全部来自武器（WeaponRuntime）。
+    /// 玩家的表现层（P3-1 之后的职责）：把 <see cref="PlayerState"/> 同步到 Transform 与精灵。
+    /// 移动/冲刺/无敌/减速的规则在 <see cref="PlayerSim"/>，这里不写任何战斗规则。
+    /// 玩家不做任何攻击，伤害全部来自武器（WeaponSystem）。
     /// </summary>
     public sealed class PlayerUnit : MonoBehaviour
     {
-        public const float Radius = 0.4f;
+        public const float Radius = PlayerSim.Radius;
 
         /// <summary>冲刺位移距离（约 2.5 身位）。</summary>
-        public const float DashDistance = 2.5f;
+        public const float DashDistance = PlayerSim.DashDistance;
 
-        public const float DashDuration = 0.2f;
-        public const float DashInvulnExtra = 0.1f;
-        public const float DashCooldown = 3f;
+        public const float DashDuration = PlayerSim.DashDuration;
+        public const float DashInvulnExtra = PlayerSim.DashInvulnExtra;
+        public const float DashCooldown = PlayerSim.DashCooldown;
+
+        private readonly PlayerSim _sim = new PlayerSim();
 
         private BattleSession _session;
         private SpriteRenderer _renderer;
@@ -23,17 +26,14 @@ namespace App.Battle
         private SpriteRenderer _auraRenderer;
         private Transform _body;
         private Transform _auraVisual;
-        private float _facingAngle;
-        private float _dashTimeLeft;
-        private Vector2 _dashDir;
-        private float _dashCooldownLeft;
-        private float _invulnLeft;
-        private float _slowLeft;
         private float _flash;
 
-        public float DashCooldownLeft => _dashCooldownLeft;
-        public bool IsDashing => _dashTimeLeft > 0f;
-        public bool IsInvulnerable => _invulnLeft > 0f;
+        /// <summary>逻辑状态：只有 <see cref="PlayerSim"/> 写它，表现层只读。</summary>
+        public PlayerState State { get; private set; }
+
+        public float DashCooldownLeft => State.DashCooldownLeft;
+        public bool IsDashing => State.IsDashing;
+        public bool IsInvulnerable => State.IsInvulnerable;
 
         /// <summary>
         /// 谁在控制这个角色：默认玩家摇杆，冒烟时换成机器人，将来有回放/引导也可以换。
@@ -41,21 +41,15 @@ namespace App.Battle
         public IUnitInput Input { get; set; }
 
         /// <summary>当前移动倍率（被鼻涕虫命中后短暂减速 50%）。</summary>
-        public float SlowMultiplier => _slowLeft > 0f ? 0.5f : 1f;
+        public float SlowMultiplier => State.SlowMultiplier;
 
         /// <summary>角色当前面向（单位向量，+Y 朝上）。停下来以后保持最后一次朝向。</summary>
-        public Vector2 FacingDirection
-        {
-            get
-            {
-                var radians = (_facingAngle + 90f) * Mathf.Deg2Rad;
-                return new Vector2(Mathf.Cos(radians), Mathf.Sin(radians));
-            }
-        }
+        public Vector2 FacingDirection => State.FacingDirection;
 
         public void Init(BattleSession session, Vector3 position)
         {
             _session = session;
+            State = new PlayerState { Position = position };
             transform.position = position;
             name = "Player";
 
@@ -123,7 +117,7 @@ namespace App.Battle
 
         public void ApplySlow(float duration)
         {
-            _slowLeft = Mathf.Max(_slowLeft, duration);
+            State.ApplySlow(duration);
         }
 
         /// <summary>受击闪红（战斗震动、屏幕泛红、飘字在 BattleRunner.DamagePlayer 里一起触发）。</summary>
@@ -132,28 +126,22 @@ namespace App.Battle
             _flash = 1f;
         }
 
+        /// <summary>
+        /// 每帧只做两件事：让 <see cref="PlayerSim"/> 推进逻辑，再把逻辑状态画出来。
+        /// 顺序很重要——先算完位置再同步 Transform 与排序，视觉才不会落后一帧。
+        /// </summary>
         public void Tick(float deltaTime, Rect arena)
         {
-            // 输入在单位内部读：玩家摇杆、冒烟机器人、被动脚本都是同一个接口
-            Input?.Update(deltaTime);
-            var moveDir = Input != null ? Input.Move : Vector2.zero;
-            var dashRequested = Input != null && Input.DashRequested;
+            _sim.Tick(State, _session, Input, deltaTime, arena);
 
-            if (_dashCooldownLeft > 0f)
-            {
-                _dashCooldownLeft -= deltaTime;
-            }
+            transform.position = State.Position;
+            ApplySortOrder();
+            SyncVisual(deltaTime);
+        }
 
-            if (_slowLeft > 0f)
-            {
-                _slowLeft -= deltaTime;
-            }
-
-            if (_invulnLeft > 0f)
-            {
-                _invulnLeft -= deltaTime;
-            }
-
+        /// <summary>纯表现：闪红、朝向 Slerp、冲刺半透明。</summary>
+        private void SyncVisual(float deltaTime)
+        {
             if (_flash > 0f)
             {
                 _flash = Mathf.Max(0f, _flash - deltaTime / 0.22f);
@@ -163,35 +151,18 @@ namespace App.Battle
                 }
             }
 
-            if (IsDashing)
+            if (_body != null)
             {
-                transform.position += (Vector3)(_dashDir * (DashDistance / DashDuration) * deltaTime);
-                _dashTimeLeft -= deltaTime;
+                // 贴图默认朝上，所以角度加 90°；只转 Body，不转根节点（阴影/光环会歪）
+                var target = Quaternion.Euler(0f, 0f, State.FacingAngle);
+                _body.rotation = Quaternion.Slerp(_body.rotation, target, Mathf.Clamp01(deltaTime * 18f));
             }
-            else
-            {
-                var speed = _session.MoveSpeed * SlowMultiplier;
-                if (moveDir.sqrMagnitude > 0.0001f)
-                {
-                    transform.position += (Vector3)(moveDir.normalized * (speed * deltaTime));
-                }
-
-                if (dashRequested && _dashCooldownLeft <= 0f)
-                {
-                    StartDash(moveDir);
-                }
-            }
-
-            ClampToArena(arena);
-
-            ApplySortOrder();
-            UpdateFacing(deltaTime, moveDir);
 
             if (_renderer != null)
             {
                 // 冲刺时半透明，提示无敌帧
                 var color = _renderer.color;
-                color.a = IsDashing ? 0.5f : 1f;
+                color.a = State.IsDashing ? 0.5f : 1f;
                 _renderer.color = color;
             }
         }
@@ -218,43 +189,6 @@ namespace App.Battle
             {
                 _auraRenderer.sortingOrder = BattleSort.Shadow(order) - 1;
             }
-        }
-
-        /// <summary>
-        /// 精灵朝向：贴着移动方向慢慢转（贴图默认朝上，所以角度减 90°）。
-        /// 只转 Body 子节点，不转根节点 —— 否则脚下的阴影和光环会跟着歪。
-        /// </summary>
-        private void UpdateFacing(float deltaTime, Vector2 moveDir)
-        {
-            var direction = IsDashing ? _dashDir : moveDir;
-            if (direction.sqrMagnitude > 0.0001f)
-            {
-                _facingAngle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
-            }
-
-            if (_body == null)
-            {
-                return;
-            }
-
-            var target = Quaternion.Euler(0f, 0f, _facingAngle);
-            _body.rotation = Quaternion.Slerp(_body.rotation, target, Mathf.Clamp01(deltaTime * 18f));
-        }
-
-        private void StartDash(Vector2 moveDir)
-        {
-            _dashDir = moveDir.sqrMagnitude > 0.01f ? moveDir.normalized : Vector2.up;
-            _dashTimeLeft = DashDuration;
-            _invulnLeft = DashDuration + DashInvulnExtra;
-            _dashCooldownLeft = DashCooldown;
-        }
-
-        private void ClampToArena(Rect arena)
-        {
-            var pos = transform.position;
-            pos.x = Mathf.Clamp(pos.x, arena.xMin + Radius, arena.xMax - Radius);
-            pos.y = Mathf.Clamp(pos.y, arena.yMin + Radius, arena.yMax - Radius);
-            transform.position = pos;
         }
     }
 }
