@@ -13,15 +13,6 @@ namespace App.Battle
         private SpriteRenderer _body;
         private SpriteRenderer _shadow;
         private readonly ScriptedInput _input = new ScriptedInput();
-        private float _speed;
-        private float _damage;
-        private float _radius;
-        private float _angle;
-        private float _slowUntil;
-        private float _fuseLeft;
-        private float _attackTimer;
-        private bool _phaseTwoAnnounced;
-        private bool _fuseStarted;
 
         // 受击反馈：闪白计时（1 → 0）、被击退的速度、贴图原始缩放与颜色
         private float _flash;
@@ -29,43 +20,56 @@ namespace App.Battle
         private Vector3 _bodyScale = Vector3.one;
         private Color _bodyColor = Color.white;
 
-        public EnemyDef Def { get; private set; }
-        public float Hp { get; private set; }
-        public float MaxHp { get; private set; }
-        public float Radius => _radius;
-        public float Damage => _damage;
-        public bool IsBoss { get; private set; }
-        public bool IsElite { get; private set; }
-        public EliteAffix Affix { get; private set; }
-        public bool IsDead => Hp <= 0f;
+        /// <summary>纯逻辑状态（P3-1）：数值、计时器、位置都在这里，单位只负责表现与代理。</summary>
+        public EnemyState State { get; private set; }
+
+        public EnemyDef Def => State.Def;
+        public float Hp => State.Hp;
+        public float MaxHp => State.MaxHp;
+        public float Radius => State.Radius;
+        public float Damage => State.Damage;
+        public bool IsBoss => State.IsBoss;
+        public bool IsElite => State.IsElite;
+        public EliteAffix Affix => State.Affix;
+        public bool IsDead => State.IsDead;
 
         /// <summary>接触伤害冷却（0.5 秒一跳）。</summary>
-        public float NextContactTime;
+        public float NextContactTime
+        {
+            get => State.NextContactTime;
+            set => State.NextContactTime = value;
+        }
 
         /// <summary>回旋刃的重复命中冷却。</summary>
-        public float NextBladeHitTime;
+        public float NextBladeHitTime
+        {
+            get => State.NextBladeHitTime;
+            set => State.NextBladeHitTime = value;
+        }
 
         /// <summary>出场时按分钟做的数值放大（HP 每分钟 +40%，伤害 +20%）。</summary>
         public void Init(IBattleContext runner, EnemyDef def, Vector3 position, EliteAffix affix, float minuteScaleHp, float minuteScaleDamage)
         {
             _runner = runner;
-            Def = def;
-            Affix = affix;
-            IsElite = affix != EliteAffix.None;
-            IsBoss = def.Id >= BattleSession.BossEnemyId;
+            State = new EnemyState
+            {
+                Def = def,
+                Affix = affix,
+                IsElite = affix != EliteAffix.None,
+                IsBoss = def.Id >= BattleSession.BossEnemyId,
+                MaxHp = def.Hp * minuteScaleHp,
+                Speed = def.Speed,
+                Damage = def.Damage * minuteScaleDamage,
+                Radius = def.Radius,
+                AttackTimer = def.AttackInterval,
+                WanderAngle = Random.value * Mathf.PI * 2f
+            };
+            State.Hp = State.MaxHp;
+            State.ApplyAffix();
             name = def.Name;
 
-            MaxHp = def.Hp * minuteScaleHp;
-            Hp = MaxHp;
-            _speed = def.Speed;
-            _damage = def.Damage * minuteScaleDamage;
-            _radius = def.Radius;
-            _attackTimer = def.AttackInterval;
-            _angle = Random.value * Mathf.PI * 2f;
-
-            ApplyAffix();
-
             transform.position = position;
+            State.Position = transform.position;
 
             var color = Color.white;
             if (IsElite)
@@ -78,7 +82,7 @@ namespace App.Battle
             var spriteKey = string.IsNullOrEmpty(def.Sprite) ? BattleVisuals.EnemyFallback : "Battle/Sprites/" + def.Sprite;
             var fallback = def.Behavior == EnemyBehavior.Runner ? PlaceholderArt.Triangle : PlaceholderArt.Circle;
             _body = BattleVisuals.Body(
-                transform, spriteKey, color, _radius * 2f, BattleSort.Character(position.y, GetInstanceID()), fallback);
+                transform, spriteKey, color, State.Radius * 2f, BattleSort.Character(position.y, GetInstanceID()), fallback);
 
             var shadow = transform.Find("Shadow");
             _shadow = shadow != null ? shadow.GetComponent<SpriteRenderer>() : null;
@@ -111,50 +115,20 @@ namespace App.Battle
 
         private void ApplyAffix()
         {
-            switch (Affix)
-            {
-                case EliteAffix.Swift:
-                    _speed *= 1.6f;
-                    break;
-                case EliteAffix.Giant:
-                    _radius *= 1.6f;
-                    MaxHp *= 2f;
-                    Hp = MaxHp;
-                    _damage *= 1.4f;
-                    break;
-                case EliteAffix.Shell:
-                    MaxHp *= 1.8f;
-                    Hp = MaxHp;
-                    _speed *= 0.85f;
-                    break;
-                case EliteAffix.Frenzy:
-                    _speed *= 1.25f;
-                    _damage *= 1.25f;
-                    break;
-                case EliteAffix.Split:
-                    MaxHp *= 0.9f;
-                    Hp = MaxHp;
-                    break;
-            }
+            State.ApplyAffix();
         }
 
         public void ApplySlow(float duration)
         {
-            _slowUntil = Mathf.Max(_slowUntil, Context.ElapsedSeconds + duration);
+            State.SlowUntil = Mathf.Max(State.SlowUntil, Context.ElapsedSeconds + duration);
         }
 
         /// <summary>扣血，返回是否本次死亡。</summary>
         public bool TakeDamage(float amount)
         {
-            if (IsDead)
+            var died = State.TakeDamage(amount);
+            if (died)
             {
-                return false;
-            }
-
-            Hp -= amount;
-            if (Hp <= 0f)
-            {
-                Hp = 0f;
                 return true;
             }
 
@@ -216,6 +190,9 @@ namespace App.Battle
 
             FaceDirection(deltaTime, DirectionTo(player));
             ApplySortOrder();
+
+            // 击退会直接改 transform，这里统一回写成状态（P3-1b 会把方向反过来：状态权威、表现跟随）
+            State.Position = transform.position;
         }
 
         /// <summary>
@@ -232,7 +209,8 @@ namespace App.Battle
             }
 
             var next = (Vector2)transform.position + move * (CurrentSpeed * deltaTime);
-            transform.position = BattleMap.ClampToWalkable(next, _radius);
+            State.Position = BattleMap.ClampToWalkable(next, State.Radius);
+            transform.position = State.Position;
         }
 
         // ---------- 策略需要的单位数据（策略本身无状态，见 IEnemyBehavior 注释） ----------
@@ -240,30 +218,30 @@ namespace App.Battle
         internal IBattleContext Context => _runner;
 
         /// <summary>当前移速（含减速效果）。</summary>
-        internal float CurrentSpeed => _speed * (Context.ElapsedSeconds < _slowUntil ? 0.6f : 1f);
+        internal float CurrentSpeed => State.Speed * (Context.ElapsedSeconds < State.SlowUntil ? 0.6f : 1f);
 
         /// <summary>法术/远程攻击计时器。</summary>
         internal float AttackTimer
         {
-            get => _attackTimer;
-            set => _attackTimer = value;
+            get => State.AttackTimer;
+            set => State.AttackTimer = value;
         }
 
         /// <summary>自爆引信是否已点燃。</summary>
-        internal bool FuseStarted => _fuseStarted;
+        internal bool FuseStarted => State.FuseStarted;
 
         /// <summary>引信剩余时间。</summary>
         internal float FuseLeft
         {
-            get => _fuseLeft;
-            set => _fuseLeft = value;
+            get => State.FuseLeft;
+            set => State.FuseLeft = value;
         }
 
         /// <summary>兔子摆动的相位。</summary>
         internal float WanderAngle
         {
-            get => _angle;
-            set => _angle = value;
+            get => State.WanderAngle;
+            set => State.WanderAngle = value;
         }
 
         internal Vector2 DirectionTo(PlayerUnit player)
@@ -296,8 +274,8 @@ namespace App.Battle
         /// <summary>点燃自爆引信：变红 + 开始倒计时。</summary>
         internal void StartFuse()
         {
-            _fuseStarted = true;
-            _fuseLeft = Mathf.Max(0.2f, Def.FuseTime);
+            State.FuseStarted = true;
+            State.FuseLeft = Mathf.Max(0.2f, Def.FuseTime);
             if (_body != null)
             {
                 SetBaseColor(new Color(1f, 0.45f, 0.45f));
@@ -306,7 +284,7 @@ namespace App.Battle
 
         internal void FireProjectile(Vector2 direction)
         {
-            _runner.SpawnEnemyProjectile(transform.position, direction, Def.ProjectileSpeed, _damage);
+            _runner.SpawnEnemyProjectile(transform.position, direction, Def.ProjectileSpeed, State.Damage);
         }
 
         /// <summary>
@@ -360,29 +338,29 @@ namespace App.Battle
                 return;
             }
 
-            _speed = Def.Speed * 1.35f;
-            _attackTimer -= deltaTime;
-            if (_attackTimer > 0f)
+            State.Speed = Def.Speed * 1.35f;
+            State.AttackTimer -= deltaTime;
+            if (State.AttackTimer > 0f)
             {
                 return;
             }
 
-            _attackTimer = 3f;
+            State.AttackTimer = 3f;
             const int count = 12;
             for (var i = 0; i < count; i++)
             {
                 var angle = i * Mathf.PI * 2f / count + Context.ElapsedSeconds;
                 var dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-                _runner.SpawnEnemyProjectile(transform.position, dir, Def.ProjectileSpeed, _damage * 0.6f);
+                _runner.SpawnEnemyProjectile(transform.position, dir, Def.ProjectileSpeed, State.Damage * 0.6f);
             }
 
-            if (_phaseTwoAnnounced)
+            if (State.PhaseTwoAnnounced)
             {
                 return;
             }
 
             _runner.Toast("Boss 进入第二阶段！");
-            _phaseTwoAnnounced = true;
+            State.PhaseTwoAnnounced = true;
         }
 
         /// <summary>移除自身（掉落与计数由 BattleRunner 结算）。</summary>
@@ -393,7 +371,7 @@ namespace App.Battle
 
         public void SetDead()
         {
-            Hp = 0f;
+            State.Hp = 0f;
         }
     }
 }
