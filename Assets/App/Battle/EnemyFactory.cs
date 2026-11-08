@@ -1,4 +1,3 @@
-using App.Config;
 using UnityEngine;
 
 namespace App.Battle
@@ -18,11 +17,11 @@ namespace App.Battle
             _root = root;
         }
 
-        public EnemyUnit Create(EnemyDef def, Vector2 position, EliteAffix affix, float hpScale, float dmgScale)
+        public EnemyUnit Create(EnemyState state)
         {
-            var go = BattleVisuals.Spawn(BattleVisuals.EnemyPrefab, "Enemy_" + def.Name, _root);
+            var go = BattleVisuals.Spawn(BattleVisuals.EnemyPrefab, "Enemy_" + state.Def.Name, _root);
             var enemy = go.AddComponent<EnemyUnit>();
-            enemy.Init(_context, def, position, affix, hpScale, dmgScale);
+            enemy.Init(_context, state);
             return enemy;
         }
     }

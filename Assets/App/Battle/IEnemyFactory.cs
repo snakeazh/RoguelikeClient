@@ -10,6 +10,6 @@ namespace App.Battle
     /// </summary>
     public interface IEnemyFactory
     {
-        EnemyUnit Create(EnemyDef def, Vector2 position, EliteAffix affix, float hpScale, float dmgScale);
+        EnemyUnit Create(EnemyState state);
     }
 }

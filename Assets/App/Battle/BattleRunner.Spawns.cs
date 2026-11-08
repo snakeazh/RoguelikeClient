@@ -18,39 +18,30 @@ namespace App.Battle
         // ---------- 刷怪 ----------
         public void SpawnEnemy(int enemyId, Vector2 position, EliteAffix affix, float elapsed)
         {
-            var def = EnemyDef.Get(enemyId);
-            if (def == null)
+            // 出生规则（查表 / 按分钟成长 / 夹进可走区）都在 SpawnSystem，这里只负责把状态接进列表。
+            var state = _spawns.Create(enemyId, position, affix, elapsed, _walkable);
+            if (state == null)
             {
-                AppLog.Warn(LogChannel.Game, $"[Battle] enemy id {enemyId} not found");
                 return;
             }
 
-            // 环形刷新之类的点位可能落在墙外，统一夹进可走范围。
-            position = BattleMap.ClampToWalkable(position, 0.4f);
-
-            var enemy = _enemyFactory.Create(
-                def, position, affix, EnemySpawner.HpScale(elapsed), EnemySpawner.DamageScale(elapsed));
-            _enemies.Add(enemy);
+            _enemies.Add(_enemyFactory.Create(state));
         }
 
         public void SpawnBoss(int enemyId, float elapsed)
         {
-            var def = EnemyDef.Get(enemyId);
-            if (def == null)
+            // Boss 从玩家正上方、屏幕外走进来；地图边界比屏幕大，所以不会刷在墙外。
+            var player = Player != null ? (Vector2)Player.transform.position : _walkable.center;
+            var view = CameraView(1.2f);
+            var position = new Vector2(player.x, view.yMax + 0.6f);
+
+            var state = _spawns.CreateBoss(enemyId, position, _walkable);
+            if (state == null)
             {
                 return;
             }
 
-            // Boss 从玩家正上方、屏幕外走进来；地图边界比屏幕大，所以不会刷在墙外。
-            var player = Player != null ? (Vector2)Player.transform.position : _walkable.center;
-            var view = CameraView(1.2f);
-            var position = BattleMap.ClampToWalkable(
-                new Vector2(player.x, view.yMax + 0.6f),
-                0.5f);
-
-            // Boss 不吃按分钟成长：强度完全由 Enemies.json 的血量决定。
-            var boss = _enemyFactory.Create(def, position, EliteAffix.None, 1f, 1f);
-            _enemies.Add(boss);
+            _enemies.Add(_enemyFactory.Create(state));
         }
 
         /// <summary>

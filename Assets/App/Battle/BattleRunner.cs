@@ -29,6 +29,9 @@ namespace App.Battle
         private readonly List<PickupUnit> _pickups = new List<PickupUnit>(256);
 
 
+        /// <summary>敌人出生规则（P3-1b 第 6 步）：查表、按时间成长、夹进可走区。</summary>
+        private readonly SpawnSystem _spawns = new SpawnSystem();
+
         private IEnemyFactory _enemyFactory;
         private IPickupFactory _pickupFactory;
 

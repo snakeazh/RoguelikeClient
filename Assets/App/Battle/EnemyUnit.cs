@@ -51,29 +51,19 @@ namespace App.Battle
             set => State.NextBladeHitTime = value;
         }
 
-        /// <summary>出场时按分钟做的数值放大（HP 每分钟 +40%，伤害 +20%）。</summary>
-        public void Init(IBattleContext runner, EnemyDef def, Vector3 position, EliteAffix affix, float minuteScaleHp, float minuteScaleDamage)
+        /// <summary>
+        /// 绑定一份已经算好的状态（数值与出生点位由 <see cref="SpawnSystem"/> 决定），
+        /// 这里只把状态画出来：精灵、阴影、精英染色、排序。
+        /// </summary>
+        public void Init(IBattleContext runner, EnemyState state)
         {
             _runner = runner;
-            State = new EnemyState
-            {
-                Def = def,
-                Affix = affix,
-                IsElite = affix != EliteAffix.None,
-                IsBoss = def.Id >= BattleSession.BossEnemyId,
-                MaxHp = def.Hp * minuteScaleHp,
-                Speed = def.Speed,
-                Damage = def.Damage * minuteScaleDamage,
-                Radius = def.Radius,
-                AttackTimer = def.AttackInterval,
-                WanderAngle = Random.value * Mathf.PI * 2f
-            };
-            State.Hp = State.MaxHp;
-            State.ApplyAffix();
+            State = state;
+
+            var def = state.Def;
             name = def.Name;
 
-            transform.position = position;
-            State.Position = transform.position;
+            transform.position = state.Position;
 
             var color = Color.white;
             if (IsElite)
@@ -86,7 +76,7 @@ namespace App.Battle
             var spriteKey = string.IsNullOrEmpty(def.Sprite) ? BattleVisuals.EnemyFallback : "Battle/Sprites/" + def.Sprite;
             var fallback = def.Behavior == EnemyBehavior.Runner ? PlaceholderArt.Triangle : PlaceholderArt.Circle;
             _body = BattleVisuals.Body(
-                transform, spriteKey, color, State.Radius * 2f, BattleSort.Character(position.y, GetInstanceID()), fallback);
+                transform, spriteKey, color, State.Radius * 2f, BattleSort.Character(transform.position.y, GetInstanceID()), fallback);
 
             var shadow = transform.Find("Shadow");
             _shadow = shadow != null ? shadow.GetComponent<SpriteRenderer>() : null;

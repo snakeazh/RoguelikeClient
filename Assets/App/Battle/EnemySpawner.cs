@@ -24,9 +24,6 @@ namespace App.Battle
             _waves = defs.OrderBy(def => def.Time).Select(def => new WaveState(def)).ToList();
         }
 
-        public static float HpScale(float elapsed) => 1f + 0.4f * Mathf.Floor(elapsed / 60f);
-
-        public static float DamageScale(float elapsed) => 1f + 0.2f * Mathf.Floor(elapsed / 60f);
 
         public void Tick(float deltaTime, float elapsed, IBattleContext context)
         {
