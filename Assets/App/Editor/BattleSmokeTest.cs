@@ -162,17 +162,18 @@ namespace App.EditorTools
                 }
 
                 var home = AppServices.Resolve<App.UI.Home.HomeViewModel>();
+                var launcher = AppServices.Resolve<App.Battle.BattleLauncher>();
                 home.StartBattleCommand.Execute();
 
-                for (var i = 0; i < 300 && BattleRunner.Instance == null; i++)
+                for (var i = 0; i < 300 && launcher.Runner == null; i++)
                 {
                     await Task.Delay(16);
                 }
 
-                var runner = BattleRunner.Instance;
+                var runner = launcher.Runner;
                 if (runner == null)
                 {
-                    Fail("BattleRunner.Instance is null after StartBattleCommand");
+                    Fail("BattleLauncher.Runner is null after StartBattleCommand");
                     return;
                 }
 
@@ -188,7 +189,12 @@ namespace App.EditorTools
 
         private static void TrackBattle()
         {
-            var runner = BattleRunner.Instance;
+            if (!AppServices.IsReady)
+            {
+                return;
+            }
+
+            var runner = AppServices.Resolve<App.Battle.BattleLauncher>().Runner;
             if (runner == null || runner.Session == null)
             {
                 return;

@@ -91,7 +91,7 @@ Lang-zh 子集），中文缺字会静默变空格。本工程由 `Tools/Client/
 ## 4. 配置表
 
 - json 放 `Assets/Res/Config/*.json`，顶层是数组；
-- 表类继承 `ConfigRowBase<T>`（按 Id 索引）或 `ConfigConstBase<T>`（单例常量）；
+- 表类继承 `ConfigRowBase<T>`（按 Id 索引，`All` / `Get(id)` / `Count`）；
 - 在 `App/Config/ConfigTables.LoadAsync` 里加一行 `LoadArrayAsync<T>`；
 - 示例：`DemoConfig.json` + `DemoItemConfig`（`DemoItemConfig.All` / `Get(id)` / `Count`）。
 

@@ -24,8 +24,6 @@ namespace App.Battle
     /// </summary>
     public sealed partial class BattleRunner : MonoBehaviour, IBattleContext
     {
-        public static BattleRunner Instance { get; private set; }
-
         private readonly List<EnemyUnit> _enemies = new List<EnemyUnit>(256);
         private static readonly List<EnemyUnit> s_enemyBuffer = new List<EnemyUnit>(256);
         private readonly List<ProjectileUnit> _projectiles = new List<ProjectileUnit>(128);
@@ -77,17 +75,11 @@ namespace App.Battle
 
         private void Awake()
         {
-            Instance = this;
             name = "BattleRunner";
         }
 
         private void OnDestroy()
         {
-            if (Instance == this)
-            {
-                Instance = null;
-            }
-
             Time.timeScale = 1f;
             BattleInput.Reset();
 

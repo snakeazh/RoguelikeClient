@@ -26,7 +26,10 @@ namespace App.Battle
             _characters = characters;
         }
 
-        public bool IsRunning => BattleRunner.Instance != null;
+        /// <summary>当前这一局的 runner（没有战斗时为 null）。由 launcher 持有，外部不再需要找场景。</summary>
+        public BattleRunner Runner { get; private set; }
+
+        public bool IsRunning => Runner != null;
 
         public async Task StartAsync()
         {
@@ -50,6 +53,7 @@ namespace App.Battle
 
                 var go = new GameObject("Battle");
                 var runner = go.AddComponent<BattleRunner>();
+                Runner = runner;
                 runner.Begin(_ui, OnBattleExit, 0, _characters.SelectedId);
 
                 await _ui.Open(new BattleHudViewModel(runner));
@@ -66,13 +70,15 @@ namespace App.Battle
         {
             try
             {
-                var runner = BattleRunner.Instance;
+                var runner = Runner;
                 await _ui.Close(UILayer.Hud);
 
                 if (runner != null)
                 {
                     Object.Destroy(runner.gameObject);
                 }
+
+                Runner = null;
 
                 var home = AppServices.Container.Resolve<HomeViewModel>();
                 await _ui.Open(home);
