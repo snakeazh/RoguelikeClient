@@ -3,41 +3,43 @@ using UnityEngine;
 namespace App.Battle
 {
     /// <summary>
-    /// 自爆怪：先直线贴脸，进入 1.3 米后点引信（变红、脉冲放大），引信结束炸自己一圈伤害。
+    /// 自爆怪：先直线贴脸，进入 1.3 米后点引信（变红、脉冲放大由 <see cref="EnemyUnit.SyncFromState"/> 表现），
+    /// 引信结束炸自己一圈伤害并自毁（不结算击杀奖励）。
     /// </summary>
     public sealed class ExploderBehavior : IEnemyBehavior
     {
         private const float TriggerDistance = 1.3f;
 
-        public void Tick(EnemyUnit enemy, PlayerUnit player, float deltaTime)
+        public Vector2 Tick(EnemyState state, IEnemyContext context, float deltaTime)
         {
-            if (!enemy.FuseStarted)
-            {
-                enemy.MoveToward(player);
+            var offset = context.PlayerPosition - state.Position;
+            var distance = offset.magnitude;
+            var dir = distance <= 0.01f ? Vector2.zero : offset / distance;
 
-                if (enemy.DistanceTo(player) <= TriggerDistance)
+            if (!state.FuseStarted)
+            {
+                if (distance <= TriggerDistance)
                 {
-                    enemy.StartFuse();
+                    state.FuseStarted = true;
+                    state.FuseLeft = Mathf.Max(0.2f, state.Def.FuseTime);
                 }
 
-                return;
+                return dir;
             }
 
-            enemy.FuseLeft -= deltaTime;
-            var pulse = 1f + Mathf.Sin(enemy.Context.ElapsedSeconds * 20f) * 0.08f;
-            enemy.transform.localScale = Vector3.one * pulse;
-
-            if (enemy.FuseLeft > 0f)
+            state.FuseLeft -= deltaTime;
+            if (state.FuseLeft > 0f)
             {
-                return;
+                return Vector2.zero;
             }
 
-            enemy.Context.ExplodeAt(
-                enemy.Position, enemy.Def.ExplodeRadius, DamageInfo.Plain(enemy.Damage), true);
-            enemy.KillSelf();
+            context.ExplodeAt(
+                state.Position, state.Def.ExplodeRadius, DamageInfo.Plain(state.Damage), true);
+            context.DespawnEnemy(state);
+            return Vector2.zero;
         }
 
-        public void OnDeath(EnemyUnit enemy)
+        public void OnDeath(EnemyState state, IEnemyContext context)
         {
         }
     }

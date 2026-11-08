@@ -5,7 +5,7 @@ namespace App.Battle
     /// <summary>
     /// 敌人规则（P3-1b 第 4 步）：行为调度 → 位移 → Boss 二阶段。
     ///
-    /// 只读 <see cref="EnemyUnit.State"/> 与行为注册表，不碰渲染；<see cref="EnemyUnit"/> 退化成表现层。
+    /// 只读 <see cref="EnemyState"/> 与行为注册表，不碰渲染；<see cref="EnemyUnit"/> 退化成表现层。
     /// 接触伤害在 <see cref="ContactSystem"/>，拆开是因为它关心的是「和玩家的距离」，和移动是两件事。
     /// </summary>
     public sealed class EnemySystem
@@ -18,16 +18,13 @@ namespace App.Battle
 
         public const int BossBurstCount = 12;
 
+        private readonly System.Collections.Generic.List<EnemyUnit> _buffer =
+            new System.Collections.Generic.List<EnemyUnit>(256);
+
         /// <summary>冻结（沙漏）时整段跳过 —— 冻结是「敌人全部不动」，包括行为和 Boss 弹幕。</summary>
         public void Tick(float deltaTime, IEnemyContext context, System.Collections.Generic.IReadOnlyList<EnemyUnit> enemies, bool frozen)
         {
             if (frozen || context == null)
-            {
-                return;
-            }
-
-            var player = context.Player;
-            if (player == null)
             {
                 return;
             }
@@ -47,27 +44,36 @@ namespace App.Battle
                     continue;
                 }
 
-                TickOne(enemy, player, deltaTime, context);
+                TickOne(enemy.State, deltaTime, context);
             }
         }
 
-        private readonly System.Collections.Generic.List<EnemyUnit> _buffer = new System.Collections.Generic.List<EnemyUnit>(256);
-
-        private static void TickOne(EnemyUnit enemy, PlayerUnit player, float deltaTime, IEnemyContext context)
+        private static void TickOne(EnemyState state, float deltaTime, IEnemyContext context)
         {
-            var state = enemy.State;
-
             // 顺序与拆分前一致：先吃掉上一帧的击退位移，再让行为读新位置，最后统一应用移动。
             state.TickKnockback(deltaTime);
 
-            EnemyBehaviors.Get(state.Def.Behavior).Tick(enemy, player, deltaTime);
+            var move = EnemyBehaviors.Get(state.Def.Behavior).Tick(state, context, deltaTime);
 
-            var move = enemy.TakeMoveIntent();
-            if (move.sqrMagnitude > 0.0001f)
+            // 行为可能已经把这只怪打死了（自爆），别再推进位置
+            if (state.IsDead || move.sqrMagnitude <= 0.0001f)
             {
-                var next = state.Position + move * (state.SpeedAt(context.ElapsedSeconds) * deltaTime);
-                state.Position = BattleMap.ClampToWalkable(next, state.Radius);
+                if (state.IsBoss)
+                {
+                    TickBoss(state, deltaTime, context);
+                }
+
+                return;
             }
+
+            // 移动意图用长度表达倍率；超过 1 截断，避免行为写错方向长度导致瞬移
+            if (move.sqrMagnitude > 1f)
+            {
+                move = move.normalized;
+            }
+
+            var next = state.Position + move * (state.SpeedAt(context.ElapsedSeconds) * deltaTime);
+            state.Position = BattleMap.ClampToWalkable(next, state.Radius);
 
             if (state.IsBoss)
             {

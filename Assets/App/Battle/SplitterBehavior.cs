@@ -12,13 +12,13 @@ namespace App.Battle
         private const int ChildDefId = 8;
         private const int ChildCount = 2;
 
-        public override void OnDeath(EnemyUnit enemy)
+        public override void OnDeath(EnemyState state, IEnemyContext context)
         {
             for (var i = 0; i < ChildCount; i++)
             {
                 var offset = Random.insideUnitCircle * 0.6f;
-                enemy.Context.SpawnEnemy(
-                    ChildDefId, (Vector2)enemy.Position + offset, EliteAffix.None, enemy.Context.ElapsedSeconds);
+                context.SpawnEnemy(
+                    ChildDefId, state.Position + offset, EliteAffix.None, context.ElapsedSeconds);
             }
         }
     }

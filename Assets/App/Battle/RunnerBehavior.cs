@@ -5,19 +5,23 @@ namespace App.Battle
     /// <summary>兔子那种会左右摆动的冲锋：总方向朝玩家，但横向叠一层正弦扰动。</summary>
     public sealed class RunnerBehavior : IEnemyBehavior
     {
-        public void Tick(EnemyUnit enemy, PlayerUnit player, float deltaTime)
+        public Vector2 Tick(EnemyState state, IEnemyContext context, float deltaTime)
         {
-            var dir = enemy.DirectionTo(player);
+            var dir = context.PlayerPosition - state.Position;
+            if (dir.sqrMagnitude <= 0.0001f)
+            {
+                return Vector2.zero;
+            }
 
-            // 摆动的相位存在单位上，避免给每只怪配一个策略实例
-            enemy.WanderAngle += deltaTime * 6f;
-            var weave = new Vector2(-dir.y, dir.x) * (Mathf.Sin(enemy.WanderAngle) * 0.55f);
-            var moved = (dir + weave).normalized;
+            dir = dir.normalized;
 
-            enemy.MoveBy(moved, 1f);
+            // 摆动的相位存在状态里，避免给每只怪配一个策略实例
+            state.WanderAngle += deltaTime * 6f;
+            var weave = new Vector2(-dir.y, dir.x) * (Mathf.Sin(state.WanderAngle) * 0.55f);
+            return (dir + weave).normalized;
         }
 
-        public void OnDeath(EnemyUnit enemy)
+        public void OnDeath(EnemyState state, IEnemyContext context)
         {
         }
     }

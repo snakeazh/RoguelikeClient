@@ -60,10 +60,43 @@ namespace App.Battle
         }
 
         // ---------- IEnemyContext ----------
+        // 显式实现：IPickupContext 的同名属性是 Vector3（给爆炸特效用），
+        // 敌人侧只需要平面位置，接口成员故意收窄成 Vector2。
+        Vector2 IEnemyContext.PlayerPosition => Player != null ? Player.State.Position : Vector2.zero;
+
+        public float PlayerRadius => PlayerUnit.Radius;
+
         public void ApplySlowToPlayer(float duration)
         {
             Player?.ApplySlow(duration);
         }
+
+        /// <summary>把一只敌人从场上拿掉（自爆自毁）：不结算击杀奖励、不掉落。</summary>
+        public void DespawnEnemy(EnemyState state)
+        {
+            if (state == null)
+            {
+                return;
+            }
+
+            for (var i = _enemies.Count - 1; i >= 0; i--)
+            {
+                var unit = _enemies[i];
+                if (unit == null || unit.State != state)
+                {
+                    continue;
+                }
+
+                _enemies.RemoveAt(i);
+                if (unit != null)
+                {
+                    Destroy(unit.gameObject);
+                }
+
+                return;
+            }
+        }
+
         public void GrantChest()
         {
             // 1) 有满足条件的武器先进化（满级武器 + 配套被动满级）。

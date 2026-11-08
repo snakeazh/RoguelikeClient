@@ -22,13 +22,8 @@ namespace App.Battle
                 return;
             }
 
-            var player = context.Player;
-            if (player == null)
-            {
-                return;
-            }
-
-            var playerPosition = (Vector2)player.transform.position;
+            var playerPosition = context.PlayerPosition;
+            var playerRadius = context.PlayerRadius;
 
             // 与移动一样先拷一份：接触伤害可能触发爆炸/分裂，遍历中会增删敌人。
             _buffer.Clear();
@@ -51,7 +46,7 @@ namespace App.Battle
                     continue;
                 }
 
-                if (Vector2.Distance(state.Position, playerPosition) > state.Radius + PlayerUnit.Radius)
+                if (Vector2.Distance(state.Position, playerPosition) > state.Radius + playerRadius)
                 {
                     continue;
                 }

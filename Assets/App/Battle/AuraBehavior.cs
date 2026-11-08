@@ -32,7 +32,7 @@ namespace App.Battle
                 if (Vector2.Distance(origin, enemy.Position) <= radius + enemy.Radius)
                 {
                     host.Context.DamageEnemy(enemy, damage);
-                    enemy.ApplySlow(SlowFactor);
+                    enemy.ApplySlow(SlowFactor, host.Context.ElapsedSeconds);
                 }
             }
         }

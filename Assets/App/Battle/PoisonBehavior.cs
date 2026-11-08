@@ -194,7 +194,7 @@ namespace App.Battle
                 }
 
                 host.Context.DamageEnemy(enemy, host.RollDamage(cloud.Damage));
-                enemy.ApplySlow(SlowFactor);
+                enemy.ApplySlow(SlowFactor, host.Context.ElapsedSeconds);
             }
         }
 

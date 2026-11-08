@@ -4,20 +4,22 @@ using UnityEngine;
 namespace App.Battle
 {
     /// <summary>
-    /// 敌人单位。7 种行为 + 精英词缀 + Boss 都用这一个类，差异由 EnemyDef.Behavior 与词缀驱动。
-    /// 没有物理组件：所有碰撞都是圆形距离判定，由 BattleRunner 每帧统一调度。
+    /// 敌人单位的**表现层**（P3-1b 之后）。7 种行为 + 精英词缀 + Boss 都用这一个类，
+    /// 但规则全在 <see cref="EnemySystem"/> / <see cref="ContactSystem"/> / <see cref="IEnemyBehavior"/>：
+    /// 这里只把 <see cref="EnemyState"/> 同步到 Transform 与精灵。
+    /// 没有物理组件：所有碰撞都是圆形距离判定。
     /// </summary>
     public sealed class EnemyUnit : MonoBehaviour
     {
         private IBattleContext _runner;
         private SpriteRenderer _body;
         private SpriteRenderer _shadow;
-        private readonly ScriptedInput _input = new ScriptedInput();
 
         // 受击反馈：闪白计时（1 → 0）、贴图原始缩放与颜色
         private float _flash;
         private Vector3 _bodyScale = Vector3.one;
         private Color _bodyColor = Color.white;
+        private bool _fuseTinted;
 
         /// <summary>纯逻辑状态（P3-1）：数值、计时器、位置都在这里，单位只负责表现与代理。</summary>
         public EnemyState State { get; private set; }
@@ -115,14 +117,9 @@ namespace App.Battle
             }
         }
 
-        private void ApplyAffix()
+        public void ApplySlow(float duration, float elapsedSeconds)
         {
-            State.ApplyAffix();
-        }
-
-        public void ApplySlow(float duration)
-        {
-            State.SlowUntil = Mathf.Max(State.SlowUntil, Context.ElapsedSeconds + duration);
+            State.SlowUntil = Mathf.Max(State.SlowUntil, elapsedSeconds + duration);
         }
 
         /// <summary>扣血，返回是否本次死亡。</summary>
@@ -160,7 +157,7 @@ namespace App.Battle
         }
 
         /// <summary>
-        /// 表现层每帧同步：位置跟随状态，然后推进受击表现、朝向与排序。
+        /// 表现层每帧同步：位置跟随状态，然后推进受击表现、引信脉冲、朝向与排序。
         /// 规则（行为、位移、击退、Boss 阶段、接触伤害）全在 <see cref="EnemySystem"/> / <see cref="ContactSystem"/>。
         /// </summary>
         public void SyncFromState(float deltaTime, PlayerUnit player)
@@ -173,92 +170,37 @@ namespace App.Battle
             transform.position = State.Position;
 
             TickHitFeedback(deltaTime);
+            TickFuseVisual(deltaTime);
 
             if (player != null)
             {
-                FaceDirection(deltaTime, DirectionTo(player));
+                var offset = (Vector2)player.transform.position - State.Position;
+                if (offset.sqrMagnitude > 0.0001f)
+                {
+                    FaceDirection(deltaTime, offset.normalized);
+                }
             }
 
             ApplySortOrder();
         }
 
-        // ---------- 策略需要的单位数据（策略本身无状态，见 IEnemyBehavior 注释） ----------
-
-        internal IBattleContext Context => _runner;
-
-        /// <summary>法术/远程攻击计时器。</summary>
-        internal float AttackTimer
+        /// <summary>自爆引信的「变红 + 脉冲放大」：逻辑只在 State 里点火，视觉在这里。</summary>
+        private void TickFuseVisual(float deltaTime)
         {
-            get => State.AttackTimer;
-            set => State.AttackTimer = value;
-        }
+            if (!State.FuseStarted)
+            {
+                return;
+            }
 
-        /// <summary>自爆引信是否已点燃。</summary>
-        internal bool FuseStarted => State.FuseStarted;
-
-        /// <summary>引信剩余时间。</summary>
-        internal float FuseLeft
-        {
-            get => State.FuseLeft;
-            set => State.FuseLeft = value;
-        }
-
-        /// <summary>兔子摆动的相位。</summary>
-        internal float WanderAngle
-        {
-            get => State.WanderAngle;
-            set => State.WanderAngle = value;
-        }
-
-        internal Vector2 DirectionTo(PlayerUnit player)
-        {
-            var offset = (Vector2)player.transform.position - State.Position;
-            var distance = offset.magnitude;
-            return distance > 0.001f ? offset / distance : Vector2.zero;
-        }
-
-        internal float DistanceTo(PlayerUnit player)
-        {
-            return Vector2.Distance(State.Position, player.transform.position);
-        }
-
-        /// <summary>本帧往哪走（长度 0..1）；系统取走它并清空，位移由 <see cref="EnemySystem"/> 统一换算。</summary>
-        internal ScriptedInput Input => _input;
-
-        /// <summary>取走本帧移动意图（行为写入的通道），取走即清零。</summary>
-        internal Vector2 TakeMoveIntent()
-        {
-            var move = _input.Move;
-            _input.Set(Vector2.zero);
-            return move;
-        }
-
-        /// <summary>朝玩家走一步。</summary>
-        internal void MoveToward(PlayerUnit player)
-        {
-            _input.Set(DirectionTo(player));
-        }
-
-        /// <summary>按方向与相对倍率移动（1 = 全速）；行为用它表达「侧移 0.4 倍」这类动作。</summary>
-        internal void MoveBy(Vector2 direction, float scale)
-        {
-            _input.Set(Vector2.ClampMagnitude(direction, 1f) * Mathf.Clamp01(scale));
-        }
-
-        /// <summary>点燃自爆引信：变红 + 开始倒计时。</summary>
-        internal void StartFuse()
-        {
-            State.FuseStarted = true;
-            State.FuseLeft = Mathf.Max(0.2f, Def.FuseTime);
-            if (_body != null)
+            if (!_fuseTinted)
             {
                 SetBaseColor(new Color(1f, 0.45f, 0.45f));
+                _fuseTinted = true;
             }
-        }
 
-        internal void FireProjectile(Vector2 direction)
-        {
-            _runner.SpawnEnemyProjectile(State.Position, direction, Def.ProjectileSpeed, State.Damage);
+            var elapsed = _runner != null ? _runner.ElapsedSeconds : 0f;
+            var pulse = 1f + Mathf.Sin(elapsed * 20f) * 0.08f;
+            transform.localScale = Vector3.one * pulse;
         }
 
         /// <summary>
