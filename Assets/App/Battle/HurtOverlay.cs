@@ -16,6 +16,35 @@ namespace App.Battle
 
         private static Sprite s_vignette;
 
+        /// <summary>释放运行时生成的晕影贴图（战斗结束时调用）。</summary>
+        public static void ResetCache()
+        {
+            if (s_vignette == null)
+            {
+                return;
+            }
+
+            var texture = s_vignette.texture;
+            if (Application.isPlaying)
+            {
+                Destroy(s_vignette);
+                if (texture != null)
+                {
+                    Destroy(texture);
+                }
+            }
+            else
+            {
+                DestroyImmediate(s_vignette);
+                if (texture != null)
+                {
+                    DestroyImmediate(texture);
+                }
+            }
+
+            s_vignette = null;
+        }
+
         private Image _image;
         private float _alpha;
 

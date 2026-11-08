@@ -18,6 +18,47 @@ namespace App.Battle
         public static Sprite Triangle => _triangle != null ? _triangle : (_triangle = BuildTriangle(64));
         public static Sprite Ring => _ring != null ? _ring : (_ring = BuildRing(128));
 
+        /// <summary>
+        /// 释放运行时生成的贴图。战斗结束/退出播放模式时调用：
+        /// 这些 Sprite 与 Texture2D 不走资源系统，不主动销毁会一直累积（编辑器里尤其明显）。
+        /// 下一次用到时会重新生成，不需要预热。
+        /// </summary>
+        public static void ResetCache()
+        {
+            Release(ref _circle);
+            Release(ref _square);
+            Release(ref _triangle);
+            Release(ref _ring);
+        }
+
+        private static void Release(ref Sprite sprite)
+        {
+            if (sprite == null)
+            {
+                return;
+            }
+
+            var texture = sprite.texture;
+            if (Application.isPlaying)
+            {
+                Object.Destroy(sprite);
+                if (texture != null)
+                {
+                    Object.Destroy(texture);
+                }
+            }
+            else
+            {
+                Object.DestroyImmediate(sprite);
+                if (texture != null)
+                {
+                    Object.DestroyImmediate(texture);
+                }
+            }
+
+            sprite = null;
+        }
+
         /// <summary>创建一个 SpriteRenderer（排序由 order 控制）。</summary>
         public static SpriteRenderer CreateRenderer(
             string name,

@@ -16,6 +16,26 @@ namespace App.Battle
 
         private static Material s_material;
 
+        /// <summary>释放共享的白色描边材质（战斗结束时调用，下次用到会重建）。</summary>
+        public static void ResetCache()
+        {
+            if (s_material == null)
+            {
+                return;
+            }
+
+            if (Application.isPlaying)
+            {
+                Destroy(s_material);
+            }
+            else
+            {
+                DestroyImmediate(s_material);
+            }
+
+            s_material = null;
+        }
+
         /// <summary>在两点之间画一道电弧。</summary>
         public static void Bolt(Vector3 from, Vector3 to, Color color, float life = 0.14f, int order = 0)
         {

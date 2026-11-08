@@ -90,7 +90,13 @@ namespace App.Battle
 
             Time.timeScale = 1f;
             BattleInput.Reset();
-            DamagePopup.ClearAll();
+
+            // 战斗里这些类各自缓存了运行时生成的贴图/材质/对象池，跨局不清理会一直累积。
+            DamagePopup.ResetPool();
+            PlaceholderArt.ResetCache();
+            TransientFx.ResetCache();
+            HurtOverlay.ResetCache();
+            LightningFx.ResetCache();
 
             // 退出战斗时还原相机视口（战斗期间可能为了竖屏比例加过左右黑边）
             var camera = Camera.main;

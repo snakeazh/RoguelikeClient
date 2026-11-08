@@ -22,6 +22,18 @@ namespace App.Battle
         private static Transform s_root;
         private static int s_cursor;
 
+        /// <summary>
+        /// 丢弃整个池与根节点引用。UI 层随场景销毁后必须调用，
+        /// 否则下一局会往已经销毁的父节点里挂字（表现为飘字再也不出现 + MissingReference）。
+        /// </summary>
+        public static void ResetPool()
+        {
+            ClearAll();
+            s_pool.Clear();
+            s_root = null;
+            s_cursor = 0;
+        }
+
         private TextMeshPro _text;
         private Vector3 _origin;
         private Vector3 _drift;

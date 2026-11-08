@@ -17,6 +17,35 @@ namespace App.Battle
 
         private static Sprite s_softCircle;
 
+        /// <summary>释放运行时生成的柔光贴图（战斗结束时调用，避免贴图跨局累积）。</summary>
+        public static void ResetCache()
+        {
+            if (s_softCircle == null)
+            {
+                return;
+            }
+
+            var texture = s_softCircle.texture;
+            if (Application.isPlaying)
+            {
+                Destroy(s_softCircle);
+                if (texture != null)
+                {
+                    Destroy(texture);
+                }
+            }
+            else
+            {
+                DestroyImmediate(s_softCircle);
+                if (texture != null)
+                {
+                    DestroyImmediate(texture);
+                }
+            }
+
+            s_softCircle = null;
+        }
+
         /// <summary>
         /// 扇形刀光：把 <see cref="BattleVisuals.SlashArc"/> 这张月牙弧贴图按 <paramref name="angleDegrees"/>
         /// （+X 为 0 度）摆到玩家身上，快速张开一点并淡出。用于大剑这类「朝面向方向挥砍」的武器。
