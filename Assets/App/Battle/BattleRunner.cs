@@ -45,8 +45,8 @@ namespace App.Battle
         private float _playerInvulnerableUntil;
         private float _freezeUntil;
         private float _hudTimer;
-        private Vector2 _joystickOrigin;
-        private bool _joystickActive;
+        private PlayerInput _playerInput;
+        private AutoPlayerInput _autoInput;
 
         public BattleSession Session { get; private set; }
         public PlayerUnit Player { get; private set; }
@@ -54,6 +54,7 @@ namespace App.Battle
         public Transform Root => transform;
         public float ElapsedSeconds => Session != null ? Session.Elapsed : 0f;
         public IReadOnlyList<ProjectileUnit> Projectiles => _projectiles;
+        public IReadOnlyList<PickupUnit> Pickups => _pickups;
 
         /// <summary>当前阶段。只能用 <see cref="SetPhase"/> 改，转移合法性由 <see cref="BattlePhaseRules"/> 决定。</summary>
         public BattlePhase Phase { get; private set; } = BattlePhase.Idle;
@@ -68,7 +69,26 @@ namespace App.Battle
         public float SimulationSpeed { get; set; } = 1f;
 
         /// <summary>自动战斗：由 BattleSmokeTest 打开，玩家会自己绕圈并冲刺。</summary>
-        public bool AutoPlay { get; set; }
+        public bool AutoPlay
+        {
+            get => _autoPlay;
+            set
+            {
+                _autoPlay = value;
+                if (Player != null)
+                {
+                    Player.Input = value ? (IUnitInput)_autoInput : _playerInput;
+                }
+            }
+        }
+
+        private bool _autoPlay;
+
+        /// <summary>HUD 冲刺按钮：转给玩家输入，由下一帧消费。</summary>
+        public void RequestDash()
+        {
+            _playerInput?.RequestDash();
+        }
 
         /// <summary>HUD 刷新信号（每帧一次，HUD 只读 Session 属性）。</summary>
         public event Action StateChanged;
@@ -81,7 +101,7 @@ namespace App.Battle
         private void OnDestroy()
         {
             Time.timeScale = 1f;
-            BattleInput.Reset();
+            AutoPlay = false;
 
             // 战斗里这些类各自缓存了运行时生成的贴图/材质/对象池，跨局不清理会一直累积。
             DamagePopup.ResetPool();
@@ -134,6 +154,11 @@ namespace App.Battle
             var playerGo = BattleVisuals.Spawn(BattleVisuals.PlayerPrefab, "PlayerRoot", transform);
             Player = playerGo.AddComponent<PlayerUnit>();
             Player.Init(Session, _walkable.center);
+
+            // 输入：玩家默认摇杆/键盘；开自动战斗时换成机器人写入的被动通道。
+            _playerInput = new PlayerInput();
+            _autoInput = new AutoPlayerInput(this);
+            Player.Input = AutoPlay ? (IUnitInput)_autoInput : _playerInput;
 
             // 镜头跟着玩家，并且只在地图范围内移动。
             AttachCameraFollow(playerGo.transform);
@@ -226,10 +251,8 @@ namespace App.Battle
                 deltaTime = 0.1f;
             }
 
-            BattleInput.Poll();
-
-            var move = ReadMove(out var dashRequested);
-            Player.Tick(deltaTime, move, dashRequested, _walkable);
+            // 玩家输入在 PlayerUnit.Tick 内部读取（它持有 IUnitInput），这里不再代读。
+            Player.Tick(deltaTime, _walkable);
             Session.TickTime(deltaTime);
 
             _spawner.Tick(deltaTime, Session.Elapsed, this);

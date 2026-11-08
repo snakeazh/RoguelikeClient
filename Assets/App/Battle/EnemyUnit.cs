@@ -12,6 +12,7 @@ namespace App.Battle
         private IBattleContext _runner;
         private SpriteRenderer _body;
         private SpriteRenderer _shadow;
+        private readonly ScriptedInput _input = new ScriptedInput();
         private float _speed;
         private float _damage;
         private float _radius;
@@ -204,8 +205,9 @@ namespace App.Battle
 
             TickHitFeedback(deltaTime);
 
-            // 行动规则交给策略（P2-3），受击表现与朝向留在单位本体
+            // 行动规则交给策略（P2-3），策略只写「这帧想往哪走」，位移由单位统一应用。
             EnemyBehaviors.Get(Def.Behavior).Tick(this, player, deltaTime);
+            ApplyMovement(deltaTime);
 
             if (IsBoss)
             {
@@ -214,6 +216,23 @@ namespace App.Battle
 
             FaceDirection(deltaTime, DirectionTo(player));
             ApplySortOrder();
+        }
+
+        /// <summary>
+        /// 把本帧输入方向换算成位移：所有敌人都走同一条路（移速、减速、地图夹取），
+        /// 行为本身不再直接改 transform。
+        /// </summary>
+        private void ApplyMovement(float deltaTime)
+        {
+            var move = _input.Move;
+            _input.Set(Vector2.zero);
+            if (move.sqrMagnitude <= 0.0001f)
+            {
+                return;
+            }
+
+            var next = (Vector2)transform.position + move * (CurrentSpeed * deltaTime);
+            transform.position = BattleMap.ClampToWalkable(next, _radius);
         }
 
         // ---------- 策略需要的单位数据（策略本身无状态，见 IEnemyBehavior 注释） ----------
@@ -259,15 +278,19 @@ namespace App.Battle
             return Vector2.Distance(transform.position, player.transform.position);
         }
 
-        /// <summary>按当前移速朝玩家走一步。</summary>
-        internal void MoveToward(PlayerUnit player, float deltaTime)
+        /// <summary>本帧往哪走（长度 0..1，位移由 <see cref="ApplyMovement"/> 统一换算）。</summary>
+        internal ScriptedInput Input => _input;
+
+        /// <summary>朝玩家走一步。</summary>
+        internal void MoveToward(PlayerUnit player)
         {
-            Move(DirectionTo(player), CurrentSpeed * deltaTime);
+            _input.Set(DirectionTo(player));
         }
 
-        internal void MoveBy(Vector2 direction, float distance)
+        /// <summary>按方向与相对倍率移动（1 = 全速）；行为用它表达「侧移 0.4 倍」这类动作。</summary>
+        internal void MoveBy(Vector2 direction, float scale)
         {
-            Move(direction, distance);
+            _input.Set(Vector2.ClampMagnitude(direction, 1f) * Mathf.Clamp01(scale));
         }
 
         /// <summary>点燃自爆引信：变红 + 开始倒计时。</summary>
@@ -360,16 +383,6 @@ namespace App.Battle
 
             _runner.Toast("Boss 进入第二阶段！");
             _phaseTwoAnnounced = true;
-        }
-
-        private void Move(Vector2 dir, float distance)
-        {
-            if (distance <= 0f || dir.sqrMagnitude < 0.0001f)
-            {
-                return;
-            }
-
-            transform.position += (Vector3)(dir * distance);
         }
 
         /// <summary>移除自身（掉落与计数由 BattleRunner 结算）。</summary>

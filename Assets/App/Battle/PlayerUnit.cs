@@ -35,6 +35,11 @@ namespace App.Battle
         public bool IsDashing => _dashTimeLeft > 0f;
         public bool IsInvulnerable => _invulnLeft > 0f;
 
+        /// <summary>
+        /// 谁在控制这个角色：默认玩家摇杆，冒烟时换成机器人，将来有回放/引导也可以换。
+        /// </summary>
+        public IUnitInput Input { get; set; }
+
         /// <summary>当前移动倍率（被鼻涕虫命中后短暂减速 50%）。</summary>
         public float SlowMultiplier => _slowLeft > 0f ? 0.5f : 1f;
 
@@ -127,8 +132,13 @@ namespace App.Battle
             _flash = 1f;
         }
 
-        public void Tick(float deltaTime, Vector2 moveDir, bool dashRequested, Rect arena)
+        public void Tick(float deltaTime, Rect arena)
         {
+            // 输入在单位内部读：玩家摇杆、冒烟机器人、被动脚本都是同一个接口
+            Input?.Update(deltaTime);
+            var moveDir = Input != null ? Input.Move : Vector2.zero;
+            var dashRequested = Input != null && Input.DashRequested;
+
             if (_dashCooldownLeft > 0f)
             {
                 _dashCooldownLeft -= deltaTime;

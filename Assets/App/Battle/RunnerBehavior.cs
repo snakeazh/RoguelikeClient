@@ -14,7 +14,7 @@ namespace App.Battle
             var weave = new Vector2(-dir.y, dir.x) * (Mathf.Sin(enemy.WanderAngle) * 0.55f);
             var moved = (dir + weave).normalized;
 
-            enemy.MoveBy(moved, enemy.CurrentSpeed * deltaTime);
+            enemy.MoveBy(moved, 1f);
         }
 
         public void OnDeath(EnemyUnit enemy)

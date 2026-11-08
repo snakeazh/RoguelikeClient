@@ -13,7 +13,7 @@ namespace App.Battle
         {
             if (!enemy.FuseStarted)
             {
-                enemy.MoveToward(player, deltaTime);
+                enemy.MoveToward(player);
 
                 if (enemy.DistanceTo(player) <= TriggerDistance)
                 {

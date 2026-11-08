@@ -10,20 +10,19 @@ namespace App.Battle
         {
             var dir = enemy.DirectionTo(player);
             var distance = enemy.DistanceTo(player);
-            var speed = enemy.CurrentSpeed * deltaTime;
             var range = enemy.Def.AttackRange;
 
             if (distance > range * 0.85f)
             {
-                enemy.MoveBy(dir, speed);
+                enemy.MoveBy(dir, 1f);
             }
             else if (distance < range * 0.5f)
             {
-                enemy.MoveBy(-dir, speed);
+                enemy.MoveBy(-dir, 1f);
             }
             else
             {
-                enemy.MoveBy(new UnityEngine.Vector2(-dir.y, dir.x), speed * 0.4f);
+                enemy.MoveBy(new UnityEngine.Vector2(-dir.y, dir.x), 0.4f);
             }
 
             enemy.AttackTimer -= deltaTime;

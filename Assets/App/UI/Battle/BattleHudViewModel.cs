@@ -18,7 +18,7 @@ namespace App.UI.Battle
         public BattleHudViewModel(BattleRunner runner)
         {
             _runner = runner;
-            DashCommand = new RelayCommand(() => BattleInput.RequestDash());
+            DashCommand = new RelayCommand(() => _runner.RequestDash());
         }
 
         public ObservableProperty<string> Timer { get; } = new ObservableProperty<string>("05:00");

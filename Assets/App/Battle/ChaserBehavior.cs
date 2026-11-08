@@ -10,7 +10,7 @@ namespace App.Battle
     {
         public virtual void Tick(EnemyUnit enemy, PlayerUnit player, float deltaTime)
         {
-            enemy.MoveToward(player, deltaTime);
+            enemy.MoveToward(player);
         }
 
         public virtual void OnDeath(EnemyUnit enemy)
