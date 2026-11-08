@@ -101,7 +101,7 @@ namespace App.Battle
                 }
             }
 
-            var candidates = Session.Weapons.Where(w => !w.IsMaxLevel).ToList();
+            var candidates = Session.AllWeapons.Where(w => !w.IsMaxLevel).ToList();
             if (candidates.Count == 0 && Session.CanAddWeapon)
             {
                 var missing = WeaponDef.All.Values.Where(d => d.Id < 100 && !Session.HasWeapon(d.Id)).ToList();

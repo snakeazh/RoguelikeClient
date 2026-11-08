@@ -38,16 +38,19 @@ namespace App.UI.Battle
             var seconds = Mathf.FloorToInt(session.Elapsed % 60f);
 
             var weaponLines = new System.Text.StringBuilder();
-            foreach (var weapon in session.Weapons)
+            var weaponCount = 0;
+            foreach (var weapon in session.AllWeapons)
             {
                 weaponLines.Append(weaponLines.Length == 0 ? string.Empty : "、")
+                    .Append(weapon.IsInnate ? "★" : string.Empty)
                     .Append(weapon.Def.Name)
                     .Append("Lv").Append(weapon.Level);
+                weaponCount++;
             }
 
             Stats.Value = $"存活 {minutes:00}:{seconds:00}  ·  等级 Lv.{session.Level}\n"
                           + $"击杀 {session.Kills}  ·  金币 {session.Gold}\n"
-                          + $"武器 {session.Weapons.Count}  ·  被动 {session.Passives.Count}\n"
+                          + $"武器 {weaponCount}  ·  被动 {session.Passives.Count}\n"
                           + (weaponLines.Length > 0 ? "\n" + weaponLines : string.Empty);
         }
 

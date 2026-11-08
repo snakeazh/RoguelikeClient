@@ -43,9 +43,8 @@ namespace App.Battle
 
         public void Dispose()
         {
-            for (var i = 0; i < _session.Weapons.Count; i++)
+            foreach (var weapon in _session.AllWeapons)
             {
-                var weapon = _session.Weapons[i];
                 WeaponBehaviors.Get(weapon.Def.Kind).Dispose(this, weapon);
             }
 
@@ -61,9 +60,9 @@ namespace App.Battle
 
             Cannon.Tick(deltaTime, FindCannonWeapon());
 
-            for (var i = 0; i < _session.Weapons.Count; i++)
+            // 本命武器在 AllWeapons 末尾，和掉落武器走同一套形态逻辑，不占槽位
+            foreach (var weapon in _session.AllWeapons)
             {
-                var weapon = _session.Weapons[i];
                 WeaponBehaviors.Get(weapon.Def.Kind).Tick(this, weapon, deltaTime);
             }
 
@@ -176,9 +175,8 @@ namespace App.Battle
             }
 
             WeaponInstance aura = null;
-            for (var i = 0; i < _session.Weapons.Count; i++)
+            foreach (var weapon in _session.AllWeapons)
             {
-                var weapon = _session.Weapons[i];
                 if (weapon.Def.Kind == WeaponKind.Aura)
                 {
                     aura = weapon;
@@ -198,9 +196,8 @@ namespace App.Battle
 
         private WeaponInstance FindCannonWeapon()
         {
-            for (var i = 0; i < _session.Weapons.Count; i++)
+            foreach (var weapon in _session.AllWeapons)
             {
-                var weapon = _session.Weapons[i];
                 if (weapon.Def != null && weapon.Def.Mount == 1)
                 {
                     return weapon;

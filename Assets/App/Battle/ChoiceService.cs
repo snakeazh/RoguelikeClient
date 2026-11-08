@@ -40,7 +40,8 @@ namespace App.Battle
             var upgrades = new List<ChoiceOption>();
             var news = new List<ChoiceOption>();
 
-            foreach (var weapon in session.Weapons)
+            // 本命武器也能升级（它在 AllWeapons 末尾，不占槽位）
+            foreach (var weapon in session.AllWeapons)
             {
                 if (!weapon.IsMaxLevel)
                 {
@@ -132,13 +133,14 @@ namespace App.Battle
             // 保底：某把武器已满级、但配套被动还没满级时，优先推它的被动，
             // 不然「Lv5 武器 + 满级被动 → 宝箱进化」几乎凑不齐。
             var evolutionPity = new List<ChoiceOption>();
-            foreach (var weapon in session.Weapons)
+            foreach (var weapon in session.AllWeapons)
             {
                 if (!weapon.IsMaxLevel || weapon.Def.EvolvedId <= 0)
                 {
                     continue;
                 }
 
+                // 本命武器也照顾，但排在后半段：玩家想要的 build 不应该被本命武器抢走选项
                 var paired = session.FindPassive(weapon.Def.PassiveId);
                 if (paired == null || paired.IsMaxLevel)
                 {
@@ -149,7 +151,15 @@ namespace App.Battle
                 {
                     if (option.Kind == ChoiceKind.PassiveUpgrade && option.DefId == paired.Def.Id)
                     {
-                        evolutionPity.Add(option);
+                        if (weapon.IsInnate)
+                        {
+                            evolutionPity.Add(option);
+                        }
+                        else
+                        {
+                            evolutionPity.Insert(0, option);
+                        }
+
                         break;
                     }
                 }
@@ -234,7 +244,7 @@ namespace App.Battle
 
         private static WeaponInstance FindWeapon(BattleSession session, int defId)
         {
-            foreach (var weapon in session.Weapons)
+            foreach (var weapon in session.AllWeapons)
             {
                 if (weapon.Def.Id == defId)
                 {

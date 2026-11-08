@@ -105,6 +105,9 @@ namespace App.Battle
             _onExit = onExit;
             Session = new BattleSession(seed);
 
+            // 角色自带的武器：开局就有，不占武器槽（角色表落地前先固定长弓）。
+            Session.EquipInnate(WeaponDef.Get(BattleSession.DefaultInnateWeaponId));
+
             SetupMap();
 
             // 整张地图：地砖平铺 + 四周边界墙（没有精灵资源时 BattleVisuals 内部静默降级）。
@@ -129,17 +132,8 @@ namespace App.Battle
             _weapons = new WeaponRuntime();
             _weapons.Init(this, Session);
 
-            // 初始武器：长弓
-            var startWeapon = WeaponDef.Get(1);
-            if (startWeapon != null)
-            {
-                Session.AddWeapon(startWeapon);
-            }
-            else
-            {
-                AppLog.Warn(LogChannel.Game, "[Battle] start weapon (Id=1) missing in Weapons.json");
-            }
-
+            // 初始武器不再是「掉落武器」：角色自带的兵器在 Begin 开头用 EquipInnate 装上，
+            // 它不占武器槽，也不会再走这里，否则同一把长弓会被算两把。
             Time.timeScale = 1f;
             SetPhase(BattlePhase.Running);
 

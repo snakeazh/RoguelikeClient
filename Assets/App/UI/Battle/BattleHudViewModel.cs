@@ -82,22 +82,23 @@ namespace App.UI.Battle
             BossHint.Value = session.BossPhase ? "Boss 阶段" : string.Empty;
 
             var weapons = new StringBuilder("武器：");
-            if (session.Weapons.Count == 0)
+            var weaponCount = 0;
+            foreach (var weapon in session.AllWeapons)
+            {
+                if (weaponCount > 0)
+                {
+                    weapons.Append("  ");
+                }
+
+                // 本命武器在行首，用 ★ 与掉落武器区分
+                weapons.Append(weapon.IsInnate ? "★" : string.Empty);
+                weapons.Append($"{weapon.Def.Name} Lv{weapon.Level}");
+                weaponCount++;
+            }
+
+            if (weaponCount == 0)
             {
                 weapons.Append("无");
-            }
-            else
-            {
-                for (var i = 0; i < session.Weapons.Count; i++)
-                {
-                    var weapon = session.Weapons[i];
-                    if (i > 0)
-                    {
-                        weapons.Append("  ");
-                    }
-
-                    weapons.Append($"{weapon.Def.Name} Lv{weapon.Level}");
-                }
             }
 
             WeaponText.Value = weapons.ToString();

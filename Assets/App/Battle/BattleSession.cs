@@ -30,6 +30,11 @@ namespace App.Battle
         /// <summary>Boss 的怪物表 Id。</summary>
         public const int BossEnemyId = 100;
 
+        /// <summary>
+        /// 默认本命武器（角色表落地前先写死长弓）。本命武器开局就有、不占 <see cref="MaxWeaponSlots"/> 的槽位。
+        /// </summary>
+        public const int DefaultInnateWeaponId = 1;
+
         private readonly List<WeaponInstance> _weapons = new List<WeaponInstance>(MaxWeaponSlots);
         private readonly List<PassiveInstance> _passives = new List<PassiveInstance>(MaxPassiveSlots);
 
@@ -47,6 +52,26 @@ namespace App.Battle
 
         public IReadOnlyList<WeaponInstance> Weapons => _weapons;
         public IReadOnlyList<PassiveInstance> Passives => _passives;
+
+        /// <summary>角色自带的武器（开局就有，不占槽位，可以升级/进化）。</summary>
+        public WeaponInstance InnateWeapon { get; private set; }
+
+        /// <summary>本命武器 + 掉落武器。HUD、进化、升级候选都遍历这个序列（本命排在最后）。</summary>
+        public IEnumerable<WeaponInstance> AllWeapons
+        {
+            get
+            {
+                for (var i = 0; i < _weapons.Count; i++)
+                {
+                    yield return _weapons[i];
+                }
+
+                if (InnateWeapon != null)
+                {
+                    yield return InnateWeapon;
+                }
+            }
+        }
 
         public BattleSession(int seed = 0)
         {
@@ -213,7 +238,25 @@ namespace App.Battle
                 }
             }
 
-            return false;
+            return InnateWeapon != null && InnateWeapon.Def.Id == weaponId;
+        }
+
+        /// <summary>这把武器是不是角色自带的（本命武器不进新武器池）。</summary>
+        public bool IsInnate(int weaponDefId)
+        {
+            return InnateWeapon != null && InnateWeapon.Def.Id == weaponDefId;
+        }
+
+        /// <summary>装备角色自带的武器：只在本局开始时调用一次，不进 <c>_weapons</c>，所以不占武器槽。</summary>
+        internal void EquipInnate(WeaponDef def)
+        {
+            if (def == null || InnateWeapon != null)
+            {
+                return;
+            }
+
+            InnateWeapon = new WeaponInstance(def) { IsInnate = true };
+            AppLog.Info(LogChannel.Game, $"[Battle] innate weapon {def.Name}");
         }
 
         public bool CanAddWeapon => _weapons.Count < MaxWeaponSlots;
@@ -285,7 +328,7 @@ namespace App.Battle
         /// <summary>找一把当前可进化的武器（宝箱用）。</summary>
         public WeaponInstance FindEvolvable()
         {
-            foreach (var weapon in _weapons)
+            foreach (var weapon in AllWeapons)
             {
                 if (CanEvolve(weapon))
                 {
@@ -328,6 +371,9 @@ namespace App.Battle
 
         public bool IsMaxLevel => Level >= Def.MaxLevel;
         public bool IsEvolved => Def != null && Def.Id >= 100;
+
+        /// <summary>角色自带的武器：不进新武器池、不占槽位，HUD 用 ★ 标出。</summary>
+        public bool IsInnate { get; internal set; }
 
         /// <summary>冷却结束、可以开火。</summary>
         public bool IsReady => CooldownTimer <= 0f;
