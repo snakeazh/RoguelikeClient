@@ -67,7 +67,7 @@ namespace App.Battle
 
         public void FreezeEnemies(float seconds)
         {
-            _freezeUntil = Time.time + Mathf.Max(0f, seconds);
+            _freezeUntil = Session.Elapsed + Mathf.Max(0f, seconds);
         }
         public void GrantChest()
         {

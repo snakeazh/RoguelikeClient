@@ -24,7 +24,7 @@ namespace App.Battle
             }
 
             enemy.FuseLeft -= deltaTime;
-            var pulse = 1f + Mathf.Sin(Time.time * 20f) * 0.08f;
+            var pulse = 1f + Mathf.Sin(enemy.Context.ElapsedSeconds * 20f) * 0.08f;
             enemy.transform.localScale = Vector3.one * pulse;
 
             if (enemy.FuseLeft > 0f)

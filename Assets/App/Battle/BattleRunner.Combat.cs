@@ -18,7 +18,7 @@ namespace App.Battle
         // ---------- 敌人 ----------
         private void TickEnemies(float deltaTime)
         {
-            var frozen = Time.time < _freezeUntil;
+            var frozen = Session.Elapsed < _freezeUntil;
 
             // 敌人 Tick 里会连锁击杀（爆炸、分裂）进而增删 _enemies，所以先拷一份再遍历。
             s_enemyBuffer.Clear();
@@ -60,12 +60,12 @@ namespace App.Battle
                 return;
             }
 
-            if (Time.time < enemy.NextContactTime)
+            if (Session.Elapsed < enemy.NextContactTime)
             {
                 return;
             }
 
-            enemy.NextContactTime = Time.time + 0.5f;
+            enemy.NextContactTime = Session.Elapsed + 0.5f;
             DamagePlayer(enemy.Damage);
 
             if (enemy.Def.SlowOnHit > 0f)

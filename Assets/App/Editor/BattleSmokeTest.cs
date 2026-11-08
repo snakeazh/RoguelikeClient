@@ -33,6 +33,8 @@ namespace App.EditorTools
         private const string ImmortalKey = "BattleSmoke.Immortal";
         private const string ResultSeenKey = "BattleSmoke.ResultSeen";
         private const string SummaryKey = "BattleSmoke.Summary";
+        private const string SeedKey = "BattleSmoke.Seed";
+        private const string FixedStepKey = "BattleSmoke.FixedStep";
 
         private const string CharacterKey = "BattleSmoke.Character";
 
@@ -73,6 +75,8 @@ namespace App.EditorTools
             var speed = ReadArg("-battleSpeed", DefaultSpeed);
             var immortal = ReadArg("-battleImmortal", 0f) > 0f;
             var characterId = ReadArg("-battleCharacter", 0f);
+            var seed = ReadArg("-battleSeed", 0f);
+            var fixedStep = ReadArg("-battleFixedStep", 0f) > 0f;
 
             SessionState.SetBool(ActiveKey, true);
             SessionState.SetBool(ImmortalKey, immortal);
@@ -81,6 +85,8 @@ namespace App.EditorTools
             SessionState.SetFloat(TargetKey, target);
             SessionState.SetFloat(SpeedKey, speed);
             SessionState.SetInt(CharacterKey, (int)characterId);
+            SessionState.SetInt(SeedKey, (int)seed);
+            SessionState.SetBool(FixedStepKey, fixedStep);
             // 加速越大，真实等待越短；留出启动与升级弹窗的余量。
             var timeout = 60f + target / Mathf.Max(1f, speed) * 3f;
             SessionState.SetFloat(DeadlineKey, (float)EditorApplication.timeSinceStartup + timeout);
@@ -164,6 +170,7 @@ namespace App.EditorTools
 
                 var home = AppServices.Resolve<App.UI.Home.HomeViewModel>();
                 var launcher = AppServices.Resolve<App.Battle.BattleLauncher>();
+                launcher.NextSeed = SessionState.GetInt(SeedKey, 0);
                 home.StartBattleCommand.Execute();
 
                 for (var i = 0; i < 300 && launcher.Runner == null; i++)
@@ -180,7 +187,13 @@ namespace App.EditorTools
 
                 runner.AutoPlay = true;
                 runner.SimulationSpeed = SessionState.GetFloat(SpeedKey, DefaultSpeed);
-                Debug.Log("[BattleSmokeTest] battle started via Home.StartBattleCommand");
+                if (SessionState.GetBool(FixedStepKey, false))
+                {
+                    runner.FixedStepSeconds = 1f / 60f;
+                }
+
+                Debug.Log(
+                    $"[BattleSmokeTest] battle started via Home.StartBattleCommand (seed={launcher.NextSeed}, fixedStep={runner.FixedStepSeconds > 0f})");
             }
             catch (Exception e)
             {

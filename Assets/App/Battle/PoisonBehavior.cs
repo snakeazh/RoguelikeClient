@@ -139,7 +139,7 @@ namespace App.Battle
 
                 // 越接近消散越淡，并轻微呼吸，读起来像"雾"。
                 var remain = Mathf.Clamp01(cloud.Life / cloud.MaxLife);
-                var breathe = 0.9f + 0.1f * Mathf.Sin(Time.time * 6f);
+                var breathe = 0.9f + 0.1f * Mathf.Sin(host.Context.ElapsedSeconds * 6f);
                 var fade = Mathf.Min(1f, remain * 2f) * breathe;
                 Tint(cloud.Body, new Color(0.34f, 0.92f, 0.30f, CloudAlpha * 0.62f * fade));
                 Tint(cloud.Ring, new Color(0.45f, 1f, 0.40f, CloudAlpha * fade));

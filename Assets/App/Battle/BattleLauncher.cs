@@ -42,6 +42,11 @@ namespace App.Battle
         /// <summary>当前这一局的 runner（没有战斗时为 null）。由 launcher 持有，外部不再需要找场景。</summary>
         public BattleRunner Runner { get; private set; }
 
+        /// <summary>
+        /// 下一局的随机种子（0 = 每局随机）。冒烟 / headless 回归设成固定值即可逐位复现。
+        /// </summary>
+        public int NextSeed { get; set; }
+
         public bool IsRunning => Runner != null;
 
         public async Task StartAsync()
@@ -65,7 +70,7 @@ namespace App.Battle
                 var go = new GameObject("Battle");
                 var runner = go.AddComponent<BattleRunner>();
                 Runner = runner;
-                runner.Begin(_ui, OnBattleExit, 0, _characters.SelectedId, _records);
+                runner.Begin(_ui, OnBattleExit, NextSeed, _characters.SelectedId, _records);
 
                 await _ui.Open(new BattleHudViewModel(runner));
                 AppLog.Info(LogChannel.Game, "[Battle] launcher started");

@@ -37,7 +37,7 @@ namespace App.Battle
             var radius = host.AreaOf(weapon, weapon.Def.Range);
             state.Angle += weapon.Def.Speed * deltaTime;
             var origin = (Vector2)player.transform.position;
-            var now = Time.time;
+            var now = host.Session.Elapsed;
 
             for (var i = 0; i < state.Blades.Count; i++)
             {

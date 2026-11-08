@@ -137,12 +137,12 @@ namespace App.Battle
             }
 
             // 受击后短暂无敌：避免被人群连续判定瞬间打死（一次伤害结算一堆敌人）。
-            if (Time.time < _playerInvulnerableUntil)
+            if (Session.Elapsed < _playerInvulnerableUntil)
             {
                 return;
             }
 
-            _playerInvulnerableUntil = Time.time + PlayerHitInvulnerability;
+            _playerInvulnerableUntil = Session.Elapsed + PlayerHitInvulnerability;
             Session.ApplyDamage(amount);
 
             // 受击反馈：角色闪红 + 屏幕边缘泛红 + 镜头震动 + 红色飘字

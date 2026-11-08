@@ -96,7 +96,7 @@ namespace App.Battle
 
                 if (bomb.Transform != null)
                 {
-                    var pulse = 1f + Mathf.Sin(Time.time * 26f) * 0.16f;
+                    var pulse = 1f + Mathf.Sin(host.Context.ElapsedSeconds * 26f) * 0.16f;
                     bomb.Transform.localScale = Vector3.one * pulse;
                 }
 

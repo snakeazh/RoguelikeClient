@@ -140,7 +140,7 @@ namespace App.Battle
 
         public void ApplySlow(float duration)
         {
-            _slowUntil = Mathf.Max(_slowUntil, Time.time + duration);
+            _slowUntil = Mathf.Max(_slowUntil, Context.ElapsedSeconds + duration);
         }
 
         /// <summary>扣血，返回是否本次死亡。</summary>
@@ -240,7 +240,7 @@ namespace App.Battle
         internal IBattleContext Context => _runner;
 
         /// <summary>当前移速（含减速效果）。</summary>
-        internal float CurrentSpeed => _speed * (Time.time < _slowUntil ? 0.6f : 1f);
+        internal float CurrentSpeed => _speed * (Context.ElapsedSeconds < _slowUntil ? 0.6f : 1f);
 
         /// <summary>法术/远程攻击计时器。</summary>
         internal float AttackTimer
@@ -371,7 +371,7 @@ namespace App.Battle
             const int count = 12;
             for (var i = 0; i < count; i++)
             {
-                var angle = i * Mathf.PI * 2f / count + Time.time;
+                var angle = i * Mathf.PI * 2f / count + Context.ElapsedSeconds;
                 var dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
                 _runner.SpawnEnemyProjectile(transform.position, dir, Def.ProjectileSpeed, _damage * 0.6f);
             }

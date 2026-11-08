@@ -72,6 +72,12 @@ namespace App.Battle
         /// <summary>冒烟测试用的加速倍率。</summary>
         public float SimulationSpeed { get; set; } = 1f;
 
+        /// <summary>
+        /// 固定仿真步长（秒）。0 = 用真实帧时间。
+        /// headless 数值回归与「可复现冒烟」把它设成 1/60，配合固定随机种子即可逐位复现。
+        /// </summary>
+        public float FixedStepSeconds { get; set; }
+
         /// <summary>自动战斗：由 BattleSmokeTest 打开，玩家会自己绕圈并冲刺。</summary>
         public bool AutoPlay
         {
@@ -128,6 +134,10 @@ namespace App.Battle
             _onExit = onExit;
             _records = records;
             Session = new BattleSession(seed);
+
+            // 战斗里的随机（暴击、抛雷偏移、分裂落点）走 UnityEngine.Random 全局流；
+            // 定种子才能让同一局重放出同样的结果（P3 headless 回归的前提）。
+            UnityEngine.Random.InitState(seed != 0 ? seed : Environment.TickCount);
 
             // 角色：决定血量、移速和本命武器；缺表时 SetCharacter 不生效，退回 100 血 / 5 速 / 长弓。
             var character = CharacterDef.Get(characterId > 0 ? characterId : BattleSession.DefaultCharacterId);
@@ -253,7 +263,9 @@ namespace App.Battle
 
         private void TickRunning()
         {
-            var deltaTime = Time.deltaTime * Mathf.Max(0.01f, SimulationSpeed);
+            // FixedStepSeconds > 0 时用固定步长（headless 数值回归 / 可复现冒烟），否则跟真实帧时间。
+            var frameTime = FixedStepSeconds > 0f ? FixedStepSeconds : Time.deltaTime;
+            var deltaTime = frameTime * Mathf.Max(0.01f, SimulationSpeed);
             if (deltaTime > 0.1f)
             {
                 deltaTime = 0.1f;
