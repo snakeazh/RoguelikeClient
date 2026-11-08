@@ -82,7 +82,7 @@ namespace App.Bootstrap
             // 发布包里 DebugAutoplayHook.Enabled 恒为 false，StartAutoplay 是空实现，不需要 #if。
             if (App.Battle.DebugAutoplayHook.Enabled)
             {
-                App.Battle.DebugAutoplayHook.StartAutoplay(this, () => home.StartBattleCommand.Execute());
+                App.Battle.DebugAutoplayHook.StartAutoplay(this, ui, () => home.StartBattleCommand.Execute());
             }
 
             AppLog.Info(

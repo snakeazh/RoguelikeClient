@@ -33,6 +33,7 @@ namespace App.Battle
         private WeaponRuntime _weapons;
         private IUIManager _ui;
         private Action _onExit;
+        private BattleRecords _records;
         private Rect _arena;      // 整张地图（含墙）
         private Rect _walkable;   // 墙内侧，角色可走范围
         private CameraFollow _cameraFollow;
@@ -118,10 +119,11 @@ namespace App.Battle
             }
         }
 
-        public void Begin(IUIManager ui, Action onExit, int seed = 0, int characterId = 0)
+        public void Begin(IUIManager ui, Action onExit, int seed = 0, int characterId = 0, BattleRecords records = null)
         {
             _ui = ui;
             _onExit = onExit;
+            _records = records;
             Session = new BattleSession(seed);
 
             // 角色：决定血量、移速和本命武器；缺表时 SetCharacter 不生效，退回 100 血 / 5 速 / 长弓。

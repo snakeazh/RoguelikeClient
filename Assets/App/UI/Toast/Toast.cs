@@ -1,29 +1,14 @@
-using App.Bootstrap;
-
 namespace App.UI
 {
     /// <summary>
     /// Toast 提示工具类 - 全局访问接口。
     /// 用法：<code>Toast.Show("金币不足");</code> 或 Toast.Success / Toast.Warning / Toast.Error。
-    /// 启动完成前（AppServices 未就绪或服务未注册时）静默忽略。
+    /// 服务由 <c>UiModule</c> 启动时安装到 <see cref="UiServices"/>；安装前（或已卸载）静默忽略。
     /// </summary>
     public static class Toast
     {
-        /// <summary>
-        /// 获取 ToastService（未注册时返回 null，不抛异常）
-        /// </summary>
-        private static ToastService Service
-        {
-            get
-            {
-                if (!AppServices.IsReady)
-                {
-                    return null;
-                }
-
-                return AppServices.Container.GetService(typeof(ToastService)) as ToastService;
-            }
-        }
+        /// <summary>获取 ToastService（未安装时返回 null，不抛异常）。</summary>
+        private static ToastService Service => UiServices.Toast;
 
         /// <summary>
         /// 显示普通提示

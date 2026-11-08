@@ -34,11 +34,12 @@ namespace App.Battle
         }
 
         /// <summary>挂上自动选择组件并立刻开战。参数在发布包里不会被用到。</summary>
-        public static void StartAutoplay(MonoBehaviour host, System.Action startBattle)
+        public static void StartAutoplay(MonoBehaviour host, Framework.UI.IUIManager ui, System.Action startBattle)
         {
             if (host != null)
             {
-                host.gameObject.AddComponent<DebugAutoPilot>();
+                var pilot = host.gameObject.AddComponent<DebugAutoPilot>();
+                pilot.Init(ui);
             }
 
             startBattle?.Invoke();
@@ -50,7 +51,7 @@ namespace App.Battle
     {
         public static bool Enabled => false;
 
-        public static void StartAutoplay(MonoBehaviour host, System.Action startBattle)
+        public static void StartAutoplay(MonoBehaviour host, Framework.UI.IUIManager ui, System.Action startBattle)
         {
         }
     }

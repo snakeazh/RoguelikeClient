@@ -1,5 +1,4 @@
 using App.Audio;
-using App.Bootstrap;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -164,12 +163,12 @@ namespace App.UI
 
         private void PlayClip()
         {
-            if (!AppServices.IsReady)
+            var audio = UiServices.Audio;
+            if (audio == null)
             {
                 return;
             }
 
-            var audio = AppServices.Resolve<IAudioService>();
             if (clip != null)
             {
                 audio.PlaySfx(clip);

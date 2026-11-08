@@ -1,5 +1,4 @@
 using System.Threading.Tasks;
-using App.Bootstrap;
 using App.Resources;
 using DG.Tweening;
 using Framework.Log;
@@ -47,8 +46,8 @@ namespace App.UI
                 ToastContainer = transform;
             }
 
-            // 获取ToastService
-            mToastService = AppServices.IsReady ? AppServices.Resolve<ToastService>() : null;
+            // 获取ToastService（由 UiModule 在启动时安装）
+            mToastService = UiServices.Toast;
             if (mToastService == null)
             {
                 AppLog.Error(LogChannel.UI, "[ToastPanel] 找不到ToastService！");

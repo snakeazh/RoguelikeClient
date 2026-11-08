@@ -13,21 +13,16 @@ namespace App.Battle
     {
         private Framework.UI.IUIManager _ui;
 
+        public void Init(Framework.UI.IUIManager ui)
+        {
+            _ui = ui;
+        }
+
         private void Update()
         {
             if (_ui == null)
             {
-                if (!App.Bootstrap.AppServices.IsReady)
-                {
-                    return;
-                }
-
-                _ui = App.Bootstrap.AppServices.Container.GetService(typeof(Framework.UI.IUIManager))
-                    as Framework.UI.IUIManager;
-                if (_ui == null)
-                {
-                    return;
-                }
+                return;
             }
 
             var levelUp = _ui.FindOpen<App.UI.Battle.LevelUpViewModel>();

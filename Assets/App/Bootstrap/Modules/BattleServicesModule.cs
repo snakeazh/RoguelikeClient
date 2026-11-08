@@ -1,5 +1,7 @@
 using System.Threading.Tasks;
 using App.Battle;
+using App.UI.Home;
+using Framework.Assets;
 using Framework.Save;
 using Framework.UI;
 using Framework.UI.DI;
@@ -23,8 +25,18 @@ namespace App.Bootstrap.Modules
             Characters = new CharacterSelection(save);
             services.RegisterInstance(Characters);
 
-            services.RegisterInstance(new BattleRecords(save));
-            services.RegisterInstance(new BattleLauncher(services.Resolve<IUIManager>(), Characters));
+            var records = new BattleRecords(save);
+            services.RegisterInstance(records);
+
+            // HomeViewModel 由 UIFramework 注册为瞬时实例，退出战斗时由 launcher 现取一个新的。
+            services.RegisterInstance<System.Func<HomeViewModel>>(() => services.Resolve<HomeViewModel>());
+
+            services.RegisterInstance(new BattleLauncher(
+                services.Resolve<IUIManager>(),
+                Characters,
+                services.Resolve<IResourceService>(),
+                records,
+                services.Resolve<System.Func<HomeViewModel>>()));
 
             return Task.CompletedTask;
         }

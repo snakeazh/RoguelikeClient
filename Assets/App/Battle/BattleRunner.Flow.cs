@@ -90,11 +90,10 @@ namespace App.Battle
             ClearBattlefield();
             StateChanged?.Invoke();
 
-            // 局外结算：金币 / 次数 / 最高记录（服务未注册时静默跳过）。
+            // 局外结算：金币 / 次数 / 最高记录（未注入时静默跳过）。
             try
             {
-                var records = AppServices.Resolve<BattleRecords>();
-                records?.Commit(Session);
+                _records?.Commit(Session);
             }
             catch (Exception e)
             {

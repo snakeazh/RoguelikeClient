@@ -53,13 +53,16 @@ Unity 版本：`2022.3.62f3`（见 `ProjectSettings/ProjectVersion.txt`）。
 | Audio | `AudioModule.cs` | `IAudioService` | Save, Resource |
 | Net | `NetModule.cs` | `HttpApiClient` | Save |
 | Config | `ConfigModule.cs` | （静态配置表） | Resource |
-| UI | `UiModule.cs` | `IUIManager` / `IUINavigator` / `IDialogService` / `ToastService` | Resource（且 `UI/UIRoot` 已进缓存） |
-| BattleServices | `BattleServicesModule.cs` | `CharacterSelection` / `BattleRecords` / `BattleLauncher` | Save, UI |
+| UI | `UiModule.cs` | `IUIManager` / `IUINavigator` / `IDialogService` / `ToastService`（同时安装 `UiServices`） | Resource（且 `UI/UIRoot` 已进缓存） |
+| BattleServices | `BattleServicesModule.cs` | `CharacterSelection` / `BattleRecords` / `BattleLauncher`（全构造注入） | Save, UI, Resource |
 
 `Config` 必须在 `UI` 之前（ViewModel 构造函数经常直接读表）；`BattleLauncher` 依赖 `IUIManager`，
 所以 `BattleServices` 排在 `UI` 之后。加一个新系统就是写一个 `IGameModule` 再 `Add` 一行，
 `ModuleHost` 会按顺序 `InitAsync`、退出时按逆序 `Dispose`，每个模块的耗时打一条
 `[Boot] module X ready in N ms`。
+
+预制体上的叶子组件（按钮音效 `ButtonAnim`、`ToastPanel`）没法构造函数注入，统一从
+`App/UI/UiServices.cs` 取（由 `UiModule` 启动时安装、退出时清空）；它只暴露显式属性，不做按类型查找。
 
 任何一步抛异常都会 `AppLog.Exception` 并停在启动场景，方便定位，不会带着半个容器进首页。
 
