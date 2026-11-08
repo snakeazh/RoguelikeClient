@@ -54,6 +54,7 @@ namespace App.Battle
         public PlayerUnit Player { get; private set; }
         public IReadOnlyList<EnemyUnit> Enemies => _enemies;
         public Transform Root => transform;
+        public float ElapsedSeconds => Session != null ? Session.Elapsed : 0f;
         public IReadOnlyList<ProjectileUnit> Projectiles => _projectiles;
 
         /// <summary>当前阶段。只能用 <see cref="SetPhase"/> 改，转移合法性由 <see cref="BattlePhaseRules"/> 决定。</summary>

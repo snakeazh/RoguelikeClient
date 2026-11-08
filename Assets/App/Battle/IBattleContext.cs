@@ -31,6 +31,9 @@ namespace App.Battle
         /// <summary>可走区域（地图内缩掉墙厚）。</summary>
         Rect Walkable { get; }
 
+        /// <summary>本局已进行的秒数（刷怪数值放大与分裂怪用）。</summary>
+        float ElapsedSeconds { get; }
+
         /// <summary>在镜头边缘外取一个可走、且不在当前视野里的刷怪点。</summary>
         Vector2 RandomSpawnPosition();
 

@@ -202,47 +202,88 @@ namespace App.Battle
                 return;
             }
 
-            var toPlayer = (Vector2)(player.transform.position - transform.position);
-            var distance = toPlayer.magnitude;
-            var dir = distance > 0.001f ? toPlayer / distance : Vector2.zero;
-            var speed = _speed * (Time.time < _slowUntil ? 0.6f : 1f);
-
             TickHitFeedback(deltaTime);
 
-            switch (Def.Behavior)
-            {
-                case EnemyBehavior.Runner:
-                    _angle += deltaTime * 6f;
-                    dir = (dir + new Vector2(-dir.y, dir.x) * Mathf.Sin(_angle) * 0.55f).normalized;
-                    Move(dir, speed * deltaTime);
-                    break;
-
-                case EnemyBehavior.Tank:
-                    Move(dir, speed * deltaTime);
-                    break;
-
-                case EnemyBehavior.Shooter:
-                    TickShooter(deltaTime, player, ref dir, distance, speed);
-                    break;
-
-                case EnemyBehavior.Exploder:
-                    TickExploder(deltaTime, player, dir, distance, speed);
-                    break;
-
-                case EnemyBehavior.Splitter:
-                case EnemyBehavior.Chaser:
-                default:
-                    Move(dir, speed * deltaTime);
-                    break;
-            }
+            // 行动规则交给策略（P2-3），受击表现与朝向留在单位本体
+            EnemyBehaviors.Get(Def.Behavior).Tick(this, player, deltaTime);
 
             if (IsBoss)
             {
-                TickBoss(deltaTime, player, distance);
+                TickBoss(deltaTime);
             }
 
-            FaceDirection(deltaTime, dir);
+            FaceDirection(deltaTime, DirectionTo(player));
             ApplySortOrder();
+        }
+
+        // ---------- 策略需要的单位数据（策略本身无状态，见 IEnemyBehavior 注释） ----------
+
+        internal IBattleContext Context => _runner;
+
+        /// <summary>当前移速（含减速效果）。</summary>
+        internal float CurrentSpeed => _speed * (Time.time < _slowUntil ? 0.6f : 1f);
+
+        /// <summary>法术/远程攻击计时器。</summary>
+        internal float AttackTimer
+        {
+            get => _attackTimer;
+            set => _attackTimer = value;
+        }
+
+        /// <summary>自爆引信是否已点燃。</summary>
+        internal bool FuseStarted => _fuseStarted;
+
+        /// <summary>引信剩余时间。</summary>
+        internal float FuseLeft
+        {
+            get => _fuseLeft;
+            set => _fuseLeft = value;
+        }
+
+        /// <summary>兔子摆动的相位。</summary>
+        internal float WanderAngle
+        {
+            get => _angle;
+            set => _angle = value;
+        }
+
+        internal Vector2 DirectionTo(PlayerUnit player)
+        {
+            var offset = (Vector2)(player.transform.position - transform.position);
+            var distance = offset.magnitude;
+            return distance > 0.001f ? offset / distance : Vector2.zero;
+        }
+
+        internal float DistanceTo(PlayerUnit player)
+        {
+            return Vector2.Distance(transform.position, player.transform.position);
+        }
+
+        /// <summary>按当前移速朝玩家走一步。</summary>
+        internal void MoveToward(PlayerUnit player, float deltaTime)
+        {
+            Move(DirectionTo(player), CurrentSpeed * deltaTime);
+        }
+
+        internal void MoveBy(Vector2 direction, float distance)
+        {
+            Move(direction, distance);
+        }
+
+        /// <summary>点燃自爆引信：变红 + 开始倒计时。</summary>
+        internal void StartFuse()
+        {
+            _fuseStarted = true;
+            _fuseLeft = Mathf.Max(0.2f, Def.FuseTime);
+            if (_body != null)
+            {
+                SetBaseColor(new Color(1f, 0.45f, 0.45f));
+            }
+        }
+
+        internal void FireProjectile(Vector2 direction)
+        {
+            _runner.SpawnEnemyProjectile(transform.position, direction, Def.ProjectileSpeed, _damage);
         }
 
         /// <summary>
@@ -288,85 +329,37 @@ namespace App.Battle
             }
         }
 
-        private void TickShooter(float deltaTime, PlayerUnit player, ref Vector2 dir, float distance, float speed)
+        private void TickBoss(float deltaTime)
         {
-            // 保持在中距离：太近后退，太远靠近，否则侧移
-            if (distance > Def.AttackRange * 0.85f)
+            // 阶段二：50% 血量后狂暴（移速 + 弹幕）
+            if (Hp > MaxHp * 0.5f)
             {
-                Move(dir, speed * deltaTime);
-            }
-            else if (distance < Def.AttackRange * 0.5f)
-            {
-                Move(-dir, speed * deltaTime);
-            }
-            else
-            {
-                Move(new Vector2(-dir.y, dir.x), speed * 0.4f * deltaTime);
-            }
-
-            _attackTimer -= deltaTime;
-            if (_attackTimer <= 0f)
-            {
-                _attackTimer = Mathf.Max(0.4f, Def.AttackInterval);
-                var aim = (Vector2)(player.transform.position - transform.position).normalized;
-                _runner.SpawnEnemyProjectile(transform.position, aim, Def.ProjectileSpeed, _damage);
-            }
-        }
-
-        private void TickExploder(float deltaTime, PlayerUnit player, Vector2 dir, float distance, float speed)
-        {
-            if (!_fuseStarted)
-            {
-                Move(dir, speed * deltaTime);
-                if (distance <= 1.3f)
-                {
-                    _fuseStarted = true;
-                    _fuseLeft = Mathf.Max(0.2f, Def.FuseTime);
-                    if (_body != null)
-                    {
-                        SetBaseColor(new Color(1f, 0.45f, 0.45f));
-                    }
-                }
-
                 return;
             }
 
-            _fuseLeft -= deltaTime;
-            var pulse = 1f + Mathf.Sin(Time.time * 20f) * 0.08f;
-            transform.localScale = Vector3.one * pulse;
-
-            if (_fuseLeft <= 0f)
+            _speed = Def.Speed * 1.35f;
+            _attackTimer -= deltaTime;
+            if (_attackTimer > 0f)
             {
-                _runner.ExplodeAt(transform.position, Def.ExplodeRadius, DamageInfo.Plain(_damage), true);
-                KillSelf();
+                return;
             }
-        }
 
-        private void TickBoss(float deltaTime, PlayerUnit player, float distance)
-        {
-            // 阶段二：50% 血量后狂暴（移速 + 弹幕）
-            if (Hp <= MaxHp * 0.5f)
+            _attackTimer = 3f;
+            const int count = 12;
+            for (var i = 0; i < count; i++)
             {
-                _speed = Def.Speed * 1.35f;
-                _attackTimer -= deltaTime;
-                if (_attackTimer <= 0f)
-                {
-                    _attackTimer = 3f;
-                    const int count = 12;
-                    for (var i = 0; i < count; i++)
-                    {
-                        var angle = i * Mathf.PI * 2f / count + Time.time;
-                        var dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-                        _runner.SpawnEnemyProjectile(transform.position, dir, Def.ProjectileSpeed, _damage * 0.6f);
-                    }
-
-                    if (!_phaseTwoAnnounced)
-                    {
-                        _runner.Toast("Boss 进入第二阶段！");
-                        _phaseTwoAnnounced = true;
-                    }
-                }
+                var angle = i * Mathf.PI * 2f / count + Time.time;
+                var dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                _runner.SpawnEnemyProjectile(transform.position, dir, Def.ProjectileSpeed, _damage * 0.6f);
             }
+
+            if (_phaseTwoAnnounced)
+            {
+                return;
+            }
+
+            _runner.Toast("Boss 进入第二阶段！");
+            _phaseTwoAnnounced = true;
         }
 
         private void Move(Vector2 dir, float distance)
