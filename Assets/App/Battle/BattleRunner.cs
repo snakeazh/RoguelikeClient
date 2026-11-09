@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using App.Bootstrap;
-using App.Config;
 using App.UI;
 using App.UI.Battle;
 using Framework.Log;
@@ -142,31 +140,9 @@ namespace App.Battle
             _ui = ui;
             _onExit = onExit;
             _records = records;
-            Session = new BattleSession(seed);
 
             // 战斗随机全部走 Session.Rng（种子在这里生效）；表现层才用 UnityEngine.Random。
-
-            // 角色：决定血量、移速和本命武器；缺表时 SetCharacter 不生效，退回 100 血 / 5 速 / 长弓。
-            var character = CharacterDef.Get(characterId > 0 ? characterId : BattleSession.DefaultCharacterId);
-            if (character != null)
-            {
-                Session.SetCharacter(character);
-            }
-            else
-            {
-                AppLog.Warn(LogChannel.Game, "[Battle] character table missing, falling back to default stats");
-            }
-
-            // 角色自带的武器：开局就有，不占武器槽。
-            var innate = WeaponDef.Get(Session.InnateWeaponId);
-            if (innate != null)
-            {
-                Session.EquipInnate(innate);
-            }
-            else
-            {
-                AppLog.Warn(LogChannel.Game, $"[Battle] innate weapon (Id={Session.InnateWeaponId}) missing in Weapons.json");
-            }
+            Session = BattleBootstrapper.CreateSession(seed, characterId);
 
             SetupMap();
 
@@ -203,12 +179,10 @@ namespace App.Battle
             _pickupViews = new PickupViewPool(transform);
 
             // 规则层由 BattleSimulation 组合：玩家位移 / 刷怪 / 敌人 / 接触 / 弹体 / 拾取。
-            _simulation = new BattleSimulation(
-                Session, _walkable.center, WaveStepRegistry.CreateDefault(), WaveDef.All.Values, PickupEffects.CreateDefault());
+            _simulation = BattleBootstrapper.CreateSimulation(Session, _walkable);
             Player.Bind(_simulation.Player);
 
-            _weapons = new WeaponRuntime();
-            _weapons.Init(this, Session, new UnityWeaponViews(transform, Player));
+            _weapons = BattleBootstrapper.CreateWeapons(this, Session, transform, Player);
 
             // 初始武器不再是「掉落武器」：角色自带的兵器在 Begin 开头用 EquipInnate 装上，
             // 它不占武器槽，也不会再走这里，否则同一把长弓会被算两把。
