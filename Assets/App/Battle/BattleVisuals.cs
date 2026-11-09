@@ -91,6 +91,25 @@ namespace App.Battle
             return s_sprites.TryGetValue(key, out var sprite) ? sprite : null;
         }
 
+        /// <summary>视图池的建厂函数：敌人 / 弹体 / 拾取物各自一个预制体，缺预制体也能跑。</summary>
+        public static EnemyUnit CreateEnemyView()
+        {
+            var go = Spawn(EnemyPrefab, "Enemy", null);
+            return go.GetComponent<EnemyUnit>() ?? go.AddComponent<EnemyUnit>();
+        }
+
+        public static ProjectileUnit CreateProjectileView()
+        {
+            var go = Spawn(ProjectilePrefab, "Projectile", null);
+            return go.GetComponent<ProjectileUnit>() ?? go.AddComponent<ProjectileUnit>();
+        }
+
+        public static PickupUnit CreatePickupView()
+        {
+            var go = Spawn(PickupPrefab, "Pickup", null);
+            return go.GetComponent<PickupUnit>() ?? go.AddComponent<PickupUnit>();
+        }
+
         /// <summary>按预制体建一个战斗对象；预制体缺失时退化成空 GameObject，逻辑照样跑。</summary>
         public static GameObject Spawn(string prefabKey, string name, Transform parent)
         {

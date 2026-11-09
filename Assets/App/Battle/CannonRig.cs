@@ -13,15 +13,8 @@ namespace App.Battle
         private const float BarrelLength = 0.3f;
         private const float MuzzleOffset = 0.6f;
         private const float BarrelDiameter = 0.95f;
-        private const float SideDistance = 1.02f;
         private const int BaseOrder = BattleSort.CannonBase;
         private const int BarrelOrder = BattleSort.CannonBarrel;
-
-        // 转向手感：用「临界阻尼」而不是按帧插值，转起来是加速-减速的弧线，不会一下甩到位
-        private const float AngleSmoothTime = 0.22f;
-        private const float MaxTurnSpeed = 200f;
-        private const float MoveSmoothTime = 0.26f;
-        private const float MaxMoveSpeed = 14f;
 
         private Transform _barrelPivot;
         private SpriteRenderer _barrel;
@@ -30,32 +23,32 @@ namespace App.Battle
         private SpriteRenderer _flash;
 
         private float _angle = 90f;
-        private float _angleVelocity;
-        private Vector3 _moveVelocity;
         private float _chargeValue;
         private float _recoil;
         private float _flashTimer;
-        private bool _placed;
-
-        /// <summary>炮口当前朝向（已归一化）。</summary>
-        public Vector2 AimDirection { get; private set; } = Vector2.up;
 
         /// <summary>当前蓄能进度（0..1），调试用。</summary>
         public float Charge => _chargeValue;
 
-        /// <summary>炮管当前实际朝向（跟 <see cref="AimDirection"/> 的区别：这里是转到位之后的真实角度）。</summary>
-        public Vector2 BarrelDirection
+        /// <summary>
+        /// 摆到逻辑层算好的位姿上。这里刻意不做任何平滑：
+        /// 炮口位置必须与规则层完全一致，否则弹体出生点会跟着帧率漂。
+        /// </summary>
+        public void SetPose(Vector2 worldPosition, Vector2 direction)
         {
-            get
+            transform.position = worldPosition;
+
+            if (direction.sqrMagnitude <= 0.0001f)
             {
-                var radians = _angle * Mathf.Deg2Rad;
-                return new Vector2(-Mathf.Sin(radians), Mathf.Cos(radians));
+                return;
+            }
+
+            _angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90f;
+            if (_barrelPivot != null)
+            {
+                _barrelPivot.rotation = Quaternion.Euler(0f, 0f, _angle);
             }
         }
-
-        /// <summary>炮口位置：弹体从这里射出。</summary>
-        public Vector2 MuzzlePosition =>
-            (Vector2)(_barrelPivot != null ? _barrelPivot.position : transform.position) + BarrelDirection * MuzzleOffset;
 
         public static CannonRig Create(Transform player)
         {
@@ -125,63 +118,6 @@ namespace App.Battle
                 BarrelOrder + 2,
                 new Vector3(0f, MuzzleOffset, 0f));
             _flash.enabled = false;
-        }
-
-        /// <summary>
-        /// 转向目标方向。炮管用临界阻尼追角度（先加速后减速的弧线），炮台本体用 SmoothDamp 跟位置，
-        /// 所以敌人换边时炮是会「飘」过去的，而不是一帧甩过去。
-        /// <paramref name="deltaTime"/> 为 0 表示首次生成立即就位（没有动画）。
-        /// </summary>
-        public void AimAt(Vector2 direction, float deltaTime)
-        {
-            if (direction.sqrMagnitude > 0.0001f)
-            {
-                AimDirection = direction.normalized;
-            }
-
-            var targetAngle = Mathf.Atan2(AimDirection.y, AimDirection.x) * Mathf.Rad2Deg - 90f;
-            if (deltaTime <= 0f)
-            {
-                _angle = targetAngle;
-                _angleVelocity = 0f;
-            }
-            else
-            {
-                _angle = Mathf.SmoothDampAngle(
-                    _angle,
-                    targetAngle,
-                    ref _angleVelocity,
-                    AngleSmoothTime,
-                    MaxTurnSpeed,
-                    deltaTime);
-            }
-
-            if (_barrelPivot != null)
-            {
-                _barrelPivot.rotation = Quaternion.Euler(0f, 0f, _angle);
-            }
-
-            // 站在开火线的侧面，永远不挡在弹道上；轻微上下浮动让它看起来是"浮"在身边的
-            var barrel = BarrelDirection;
-            var side = new Vector2(-barrel.y, barrel.x) * SideDistance + new Vector2(0f, 0.08f);
-            side.y += Mathf.Sin(Time.unscaledTime * 2.2f) * 0.045f;
-            if (_placed && deltaTime > 0f)
-            {
-                transform.localPosition = Vector3.SmoothDamp(
-                    transform.localPosition,
-                    side,
-                    ref _moveVelocity,
-                    MoveSmoothTime,
-                    MaxMoveSpeed,
-                    deltaTime);
-            }
-            else
-            {
-                transform.localPosition = side;
-                _moveVelocity = Vector3.zero;
-            }
-
-            _placed = true;
         }
 
         /// <summary>0..1 的蓄能进度：炮口光球由小到大、由暗到亮，蓄满前会越来越亮地闪。</summary>

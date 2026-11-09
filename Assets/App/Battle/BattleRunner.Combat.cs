@@ -37,10 +37,7 @@ namespace App.Battle
                 }
 
                 _enemyViews.Remove(state);
-                if (view != null)
-                {
-                    Destroy(view.gameObject);
-                }
+                DespawnEnemyView(view);
             }
 
             var enemies = _simulation.Enemies;
@@ -78,6 +75,18 @@ namespace App.Battle
 
                 projectile.SyncFromState();
             }
+        }
+
+        /// <summary>敌人视图回收：先解绑状态再还池，下一只敌人复用同一个对象。</summary>
+        private void DespawnEnemyView(EnemyUnit view)
+        {
+            if (view == null)
+            {
+                return;
+            }
+
+            view.ClearState();
+            _enemyViewPool.Return(view);
         }
     }
 }

@@ -208,14 +208,20 @@ namespace App.Battle
             var state = _simulation.SpawnPlayerProjectile(
                 position, direction, speed, damage, radius, pierce, splash, life, homingTarget);
 
-            _projectiles.Add(_projectileViews.Rent(state, spriteKey, "Projectile"));
+            var unit = _projectileViews.Rent();
+            unit.Init(state, spriteKey);
+            unit.name = "Projectile";
+            _projectiles.Add(unit);
         }
 
         public void SpawnEnemyProjectile(Vector3 position, Vector2 direction, float speed, float damage)
         {
             var state = _simulation.SpawnEnemyProjectile(position, direction, speed, damage, 0.16f);
 
-            _projectiles.Add(_projectileViews.Rent(state, "Battle/Sprites/proj_enemy", "EnemyProjectile"));
+            var enemyShot = _projectileViews.Rent();
+            enemyShot.Init(state, "Battle/Sprites/proj_enemy");
+            enemyShot.name = "EnemyProjectile";
+            _projectiles.Add(enemyShot);
         }
 
         /// <summary>经验成长系数：0 分钟 1 倍，每分钟 +1.8 倍（5 分钟约 10 倍）。</summary>
@@ -234,7 +240,9 @@ namespace App.Battle
             }
 
             var state = _simulation.SpawnPickup(def, amount, position);
-            _pickups.Add(_pickupViews.Rent(state));
+            var pickup = _pickupViews.Rent();
+            pickup.Init(state);
+            _pickups.Add(pickup);
         }
 
         public void DropRestPickups()

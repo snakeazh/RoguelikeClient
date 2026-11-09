@@ -64,6 +64,11 @@ namespace App.Battle
         {
             _context = runner;
             State = state;
+            _flash = 0f;
+            _appliedOrder = int.MinValue;
+            _colorApplied = false;
+            _scaleApplied = false;
+            transform.localScale = Vector3.one;
 
             var def = state.Def;
             name = def.Name;
@@ -259,6 +264,21 @@ namespace App.Battle
         public void KillSelf()
         {
             Destroy(gameObject);
+        }
+
+        /// <summary>
+        /// 还池前解绑：状态已经结束，视图对象会被下一只敌人复用。
+        /// 受击反馈与排序缓存也要清掉，否则新敌人会沿用上一只的白闪与排序号。
+        /// </summary>
+        public void ClearState()
+        {
+            _context = null;
+            State = null;
+            _flash = 0f;
+            _fuseTinted = false;
+            _appliedOrder = int.MinValue;
+            _colorApplied = false;
+            _scaleApplied = false;
         }
 
         public void SetDead()

@@ -82,11 +82,7 @@ namespace App.Battle
 
         private sealed class Cannon : ICannonView
         {
-            public Vector2 MuzzlePosition => Vector2.zero;
-
-            public Vector2 BarrelDirection => Vector2.up;
-
-            public void AimAt(Vector2 direction, float deltaTime)
+            public void SetPose(Vector2 bodyPosition, Vector2 direction)
             {
             }
 

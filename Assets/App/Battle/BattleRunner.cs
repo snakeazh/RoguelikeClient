@@ -30,8 +30,9 @@ namespace App.Battle
 
 
         private IEnemyFactory _enemyFactory;
-        private ProjectileViewPool _projectileViews;
-        private PickupViewPool _pickupViews;
+        private ViewPool<ProjectileUnit> _projectileViews;
+        private ViewPool<PickupUnit> _pickupViews;
+        private ViewPool<EnemyUnit> _enemyViewPool;
 
         /// <summary>战斗编排者（P3-1b 第 5 步）：持有玩家/刷怪/敌人/接触/弹体/拾取，Runner 只管表现与流程。</summary>
         private BattleSimulation _simulation;
@@ -122,6 +123,9 @@ namespace App.Battle
             AutoPlay = false;
 
             // 战斗里这些类各自缓存了运行时生成的贴图/材质/对象池，跨局不清理会一直累积。
+            _enemyViewPool?.Clear();
+            _projectileViews?.Clear();
+            _pickupViews?.Clear();
             DamagePopup.ResetPool();
             PlaceholderArt.ResetCache();
             TransientFx.ResetCache();
@@ -175,9 +179,10 @@ namespace App.Battle
             }
 
             // 生成器：敌人/拾取物各自一个工厂（MonoBehaviour 不能用构造器），波次策略按默认注册表注入。
-            _enemyFactory = new EnemyFactory(this, transform);
-            _projectileViews = new ProjectileViewPool(transform);
-            _pickupViews = new PickupViewPool(transform);
+            _enemyViewPool = new ViewPool<EnemyUnit>(transform, BattleVisuals.CreateEnemyView, 160);
+            _enemyFactory = new EnemyFactory(this, _enemyViewPool);
+            _projectileViews = new ViewPool<ProjectileUnit>(transform, BattleVisuals.CreateProjectileView, 256);
+            _pickupViews = new ViewPool<PickupUnit>(transform, BattleVisuals.CreatePickupView, 256);
 
             // 规则层由 BattleSimulation 组合：玩家位移 / 刷怪 / 敌人 / 接触 / 弹体 / 拾取。
             _simulation = BattleBootstrapper.CreateSimulation(Session, _walkable);
@@ -333,10 +338,7 @@ namespace App.Battle
         {
             foreach (var view in _enemyViews.Values)
             {
-                if (view != null)
-                {
-                    Destroy(view.gameObject);
-                }
+                DespawnEnemyView(view);
             }
 
             _enemyViews.Clear();

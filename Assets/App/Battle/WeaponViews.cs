@@ -59,14 +59,13 @@ namespace App.Battle
         void Dispose();
     }
 
-    /// <summary>随身炮台视图。瞄准角、蓄能进度、后座都由规则层驱动。</summary>
+    /// <summary>
+    /// 随身炮台视图。位姿（含转向平滑）由规则层算好，这里只照着摆：
+    /// 视图一旦参与「炮口在哪」，弹体出生点就会跟着帧率变，同种子就打不出同一局。
+    /// </summary>
     public interface ICannonView
     {
-        Vector2 MuzzlePosition { get; }
-
-        Vector2 BarrelDirection { get; }
-
-        void AimAt(Vector2 direction, float deltaTime);
+        void SetPose(Vector2 bodyPosition, Vector2 direction);
 
         void SetCharge(float value);
 

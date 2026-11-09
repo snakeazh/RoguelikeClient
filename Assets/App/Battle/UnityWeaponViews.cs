@@ -226,15 +226,11 @@ namespace App.Battle
                 _rig = rig;
             }
 
-            public Vector2 MuzzlePosition => _rig != null ? _rig.MuzzlePosition : Vector2.zero;
-
-            public Vector2 BarrelDirection => _rig != null ? _rig.BarrelDirection : Vector2.up;
-
-            public void AimAt(Vector2 direction, float deltaTime)
+            public void SetPose(Vector2 bodyPosition, Vector2 direction)
             {
                 if (_rig != null)
                 {
-                    _rig.AimAt(direction, deltaTime);
+                    _rig.SetPose(bodyPosition, direction);
                 }
             }
 
