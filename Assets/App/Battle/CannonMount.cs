@@ -3,10 +3,11 @@ using UnityEngine;
 namespace App.Battle
 {
     /// <summary>
-    /// 随身炮台（魔法炮 / 湮灭炮，<c>WeaponDef.Mount == 1</c>）的表现与瞄准。
+    /// 随身炮台（魔法炮 / 湮灭炮，<c>WeaponDef.Mount == 1</c>）的瞄准逻辑。
     ///
     /// 炮台是"一把武器一件"的东西，但场上只会有一台，所以单独抽出来由 <see cref="WeaponRuntime"/> 持有：
     /// 每帧转向最近的目标、同步蓄能进度；开火逻辑仍留在 <see cref="ShooterBehavior"/> 里。
+    /// 炮台长什么样、怎么转由 <see cref="ICannonView"/> 负责，这里只算角度。
     /// </summary>
     public sealed class CannonMount
     {
@@ -17,7 +18,7 @@ namespace App.Battle
         public const float FireGraceSeconds = 0.6f;
 
         private readonly WeaponRuntime _host;
-        private CannonRig _rig;
+        private ICannonView _view;
         private EnemyState _target;
 
         public CannonMount(WeaponRuntime host)
@@ -25,30 +26,26 @@ namespace App.Battle
             _host = host;
         }
 
-        public bool Exists => _rig != null;
+        public bool Exists => _view != null;
 
-        public Vector2 MuzzlePosition => _rig != null ? _rig.MuzzlePosition : _host.PlayerPosition;
+        public Vector2 MuzzlePosition => _view != null ? _view.MuzzlePosition : _host.PlayerPosition;
 
-        public Vector2 BarrelDirection => _rig != null ? _rig.BarrelDirection : Vector2.up;
+        public Vector2 BarrelDirection => _view != null ? _view.BarrelDirection : Vector2.up;
 
         /// <summary>炮口是否已经对准某个点。没有炮台时永远算对准（普通武器不受影响）。</summary>
         public bool IsAlignedWith(Vector2 point)
         {
-            if (_rig == null)
+            if (_view == null)
             {
                 return true;
             }
 
-            var toTarget = point - _rig.MuzzlePosition;
-            return Vector2.Angle(_rig.BarrelDirection, toTarget) <= AlignmentDegrees;
+            return Vector2.Angle(_view.BarrelDirection, point - _view.MuzzlePosition) <= AlignmentDegrees;
         }
 
         public void Kick()
         {
-            if (_rig != null)
-            {
-                _rig.Kick();
-            }
+            _view?.Kick();
         }
 
         /// <summary>
@@ -63,17 +60,12 @@ namespace App.Battle
                 return;
             }
 
-            var player = _host.Player;
-            if (player == null)
+            if (_view == null)
             {
-                return;
+                _view = _host.Views.CreateCannon();
             }
 
-            if (_rig == null)
-            {
-                _rig = CannonRig.Create(player.transform);
-            }
-
+            var origin = _host.PlayerPosition;
             var range = cannonWeapon.Def.Range;
             if (!IsTargetValid(_target, range * 1.25f))
             {
@@ -81,14 +73,14 @@ namespace App.Battle
             }
 
             var aim = _target != null
-                ? (_target.Position - (Vector2)player.transform.position).normalized
-                : _rig.AimDirection;
-            _rig.AimAt(aim, deltaTime);
+                ? (_target.Position - origin).normalized
+                : _view.BarrelDirection;
+            _view.AimAt(aim, deltaTime);
 
             if (_target == null)
             {
                 // 没有目标就别亮着炮口，避免"空蓄能"的假象
-                _rig.SetCharge(0f);
+                _view.SetCharge(0f);
                 return;
             }
 
@@ -96,31 +88,29 @@ namespace App.Battle
             var charge = cooldown <= 0.0001f
                 ? 0f
                 : 1f - Mathf.Clamp01(cannonWeapon.CooldownTimer / cooldown);
-            _rig.SetCharge(charge);
+            _view.SetCharge(charge);
         }
 
         public void Dispose()
         {
-            if (_rig == null)
+            if (_view == null)
             {
                 return;
             }
 
-            Object.Destroy(_rig.gameObject);
-            _rig = null;
+            _view.Dispose();
+            _view = null;
             _target = null;
         }
 
         private bool IsTargetValid(EnemyState target, float range)
         {
-            var player = _host.Player;
-            if (target == null || player == null)
+            if (target == null)
             {
                 return false;
             }
 
-            var distance = Vector2.Distance(target.Position, (Vector2)player.transform.position);
-            return distance <= range;
+            return Vector2.Distance(target.Position, _host.PlayerPosition) <= range;
         }
     }
 }

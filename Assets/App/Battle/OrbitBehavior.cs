@@ -11,7 +11,7 @@ namespace App.Battle
 
         private sealed class Blade
         {
-            public Transform Transform;
+            public IBladeView View;
             public float AngleOffset;
         }
 
@@ -28,25 +28,22 @@ namespace App.Battle
             var state = GetState(weapon);
             Sync(host, weapon, state);
 
-            var player = host.Player;
-            if (player == null || state.Blades.Count == 0)
+            if (state.Blades.Count == 0)
             {
                 return;
             }
 
             var radius = host.AreaOf(weapon, weapon.Def.Range);
             state.Angle += weapon.Def.Speed * deltaTime;
-            var origin = (Vector2)player.transform.position;
+            var origin = host.PlayerPosition;
             var now = host.Session.Elapsed;
 
             for (var i = 0; i < state.Blades.Count; i++)
             {
                 var angle = state.Angle + state.Blades[i].AngleOffset;
                 var position = origin + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
-                state.Blades[i].Transform.position = position;
-
                 // 刀刃朝外（贴图默认朝上，所以减 90°），绕玩家转起来才像风车而不是一群静止的贴图
-                state.Blades[i].Transform.rotation = Quaternion.Euler(0f, 0f, angle * Mathf.Rad2Deg - 90f);
+                state.Blades[i].View.SetPose(position, angle * Mathf.Rad2Deg - 90f);
 
                 var damage = host.RollDamage(host.DamageOf(weapon));
                 foreach (var enemy in host.Context.Enemies.ToArray())
@@ -95,10 +92,7 @@ namespace App.Battle
             while (state.Blades.Count > desired)
             {
                 var last = state.Blades[state.Blades.Count - 1];
-                if (last.Transform != null)
-                {
-                    Object.Destroy(last.Transform.gameObject);
-                }
+                last.View.Dispose();
 
                 state.Blades.RemoveAt(state.Blades.Count - 1);
             }
@@ -106,19 +100,9 @@ namespace App.Battle
             while (state.Blades.Count < desired)
             {
                 var size = host.AreaOf(weapon, weapon.Def.Area);
-                var bladeGo = new GameObject("Blade");
-                bladeGo.transform.SetParent(host.Context.Root, false);
-                BattleVisuals.Body(
-                    bladeGo.transform,
-                    BattleVisuals.Blade,
-                    Color.white,
-                    size * 3.0f,
-                    BattleSort.Blade,
-                    PlaceholderArt.Square);
-
                 state.Blades.Add(new Blade
                 {
-                    Transform = bladeGo.transform,
+                    View = host.Views.CreateBlade(size),
                     AngleOffset = state.Blades.Count * Mathf.PI * 2f / Mathf.Max(1, desired)
                 });
             }
@@ -128,10 +112,7 @@ namespace App.Battle
         {
             foreach (var blade in state.Blades)
             {
-                if (blade.Transform != null)
-                {
-                    Object.Destroy(blade.Transform.gameObject);
-                }
+                blade.View.Dispose();
             }
 
             state.Blades.Clear();

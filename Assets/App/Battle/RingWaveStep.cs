@@ -16,7 +16,7 @@ namespace App.Battle
         {
             var def = wave.Def;
             var player = context.Player;
-            var center = player != null ? (Vector2)player.transform.position : Vector2.zero;
+            var center = player != null ? player.Position : Vector2.zero;
             var count = Mathf.Max(1, def.SpawnCount);
 
             for (var i = 0; i < count; i++)

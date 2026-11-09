@@ -17,15 +17,12 @@ namespace App.Battle
 
         private const float SlowFactor = 0.75f;
 
-        private const float CloudAlpha = 0.42f;
-
         private const int MaxClouds = 4;
 
         private sealed class Cloud
         {
-            public GameObject Root;
-            public SpriteRenderer Body;
-            public SpriteRenderer Ring;
+            public Vector2 Position;
+            public IPoisonView View;
             public float Radius;
             public float Damage;
             public float Life;
@@ -68,7 +65,7 @@ namespace App.Battle
 
             for (var i = 0; i < clouds.Count; i++)
             {
-                DestroyCloud(clouds[i]);
+                clouds[i].View.Dispose();
             }
 
             clouds.Clear();
@@ -87,32 +84,21 @@ namespace App.Battle
             return clouds;
         }
 
-        private void SpawnCloud(WeaponRuntime host, WeaponInstance weapon, Vector3 position, List<Cloud> clouds)
+        private void SpawnCloud(WeaponRuntime host, WeaponInstance weapon, Vector2 position, List<Cloud> clouds)
         {
             if (clouds.Count >= MaxClouds)
             {
                 // 最老的一片提前收掉，避免满屏绿。
-                DestroyCloud(clouds[0]);
+                clouds[0].View.Dispose();
                 clouds.RemoveAt(0);
             }
 
             var radius = host.AreaOf(weapon, weapon.Def.Area);
-            var root = new GameObject("PoisonCloud");
-            root.transform.SetParent(host.Context.Root, false);
-            root.transform.position = new Vector3(position.x, position.y, 0f);
-
-            // 两层：实心圆做"雾团"，外圈用光环精灵做边界，半透明叠起来像一团绿雾。
-            var body = CreateLayer(root.transform, "Body", PlaceholderArt.Circle, BattleSort.Fx + 1);
-            var ring = CreateLayer(root.transform, "Ring", BattleVisuals.GetSprite(BattleVisuals.Aura) ?? PlaceholderArt.Ring, BattleSort.Fx + 2);
-
-            var scale = radius * 2f;
-            root.transform.localScale = new Vector3(scale, scale, 1f);
 
             clouds.Add(new Cloud
             {
-                Root = root,
-                Body = body,
-                Ring = ring,
+                Position = position,
+                View = host.Views.CreatePoison(position, radius),
                 Radius = radius,
                 Damage = host.DamageOf(weapon),
                 Life = weapon.Def.Duration,
@@ -121,7 +107,7 @@ namespace App.Battle
             });
 
             // 落点先炸一下，避免「砸下去没反馈」。
-            TransientFx.Flash(position, radius * 0.9f, new Color(0.5f, 1f, 0.45f, 0.55f), 0.18f, 16);
+            host.Views.Flash(position, radius * 0.9f, new Color(0.5f, 1f, 0.45f, 0.55f), 0.18f);
         }
 
         private void TickClouds(WeaponRuntime host, List<Cloud> clouds, float deltaTime)
@@ -130,21 +116,16 @@ namespace App.Battle
             {
                 var cloud = clouds[i];
                 cloud.Life -= deltaTime;
-                if (cloud.Life <= 0f || cloud.Root == null)
+                if (cloud.Life <= 0f)
                 {
-                    DestroyCloud(cloud);
+                    cloud.View.Dispose();
                     clouds.RemoveAt(i);
                     continue;
                 }
 
-                // 越接近消散越淡，并轻微呼吸，读起来像"雾"。
+                // 越接近消散越淡，并轻微呼吸 —— 具体怎么画由视图决定。
                 var remain = Mathf.Clamp01(cloud.Life / cloud.MaxLife);
-                var breathe = 0.9f + 0.1f * Mathf.Sin(host.Context.ElapsedSeconds * 6f);
-                var fade = Mathf.Min(1f, remain * 2f) * breathe;
-                Tint(cloud.Body, new Color(0.34f, 0.92f, 0.30f, CloudAlpha * 0.62f * fade));
-                Tint(cloud.Ring, new Color(0.45f, 1f, 0.40f, CloudAlpha * fade));
-
-                cloud.Root.transform.Rotate(0f, 0f, deltaTime * 18f);
+                cloud.View.Tick(host.Context.ElapsedSeconds, remain, deltaTime);
 
                 cloud.DamageTimer -= deltaTime;
                 if (cloud.DamageTimer > 0f)
@@ -157,28 +138,9 @@ namespace App.Battle
             }
         }
 
-        private static SpriteRenderer CreateLayer(Transform parent, string name, Sprite sprite, int order)
-        {
-            var go = new GameObject(name);
-            go.transform.SetParent(parent, false);
-            var renderer = go.AddComponent<SpriteRenderer>();
-            renderer.sprite = sprite;
-            renderer.sortingOrder = order;
-            renderer.color = new Color(0.4f, 0.95f, 0.35f, 0f);
-            return renderer;
-        }
-
-        private static void Tint(SpriteRenderer renderer, Color color)
-        {
-            if (renderer != null)
-            {
-                renderer.color = color;
-            }
-        }
-
         private static void DamageCloud(WeaponRuntime host, Cloud cloud)
         {
-            var center = cloud.Root.transform.position;
+            var center = cloud.Position;
             var enemies = host.Context.Enemies;
             for (var i = 0; i < enemies.Count; i++)
             {
@@ -195,14 +157,6 @@ namespace App.Battle
 
                 host.Context.DamageEnemy(enemy, host.RollDamage(cloud.Damage));
                 enemy.SlowUntil = Mathf.Max(enemy.SlowUntil, host.Context.ElapsedSeconds + SlowFactor);
-            }
-        }
-
-        private static void DestroyCloud(Cloud cloud)
-        {
-            if (cloud?.Root != null)
-            {
-                Object.Destroy(cloud.Root);
             }
         }
     }

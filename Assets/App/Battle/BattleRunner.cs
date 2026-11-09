@@ -61,7 +61,11 @@ namespace App.Battle
         private AutoPlayerInput _autoInput;
 
         public BattleSession Session { get; private set; }
+        /// <summary>表现层的玩家视图（挂在场景里的 MonoBehaviour）。规则层只看到 <see cref="PlayerState"/>。</summary>
         public PlayerUnit Player { get; private set; }
+
+        /// <summary>规则层视角的玩家：纯数据，行为层据此算位置与朝向。</summary>
+        PlayerState IBattleContext.Player => _simulation?.Player;
         public IReadOnlyList<EnemyState> Enemies => _simulation != null ? _simulation.Enemies : System.Array.Empty<EnemyState>();
         public Transform Root => transform;
         public float ElapsedSeconds => Session != null ? Session.Elapsed : 0f;
@@ -204,7 +208,7 @@ namespace App.Battle
             Player.Bind(_simulation.Player);
 
             _weapons = new WeaponRuntime();
-            _weapons.Init(this, Session);
+            _weapons.Init(this, Session, new UnityWeaponViews(transform, Player));
 
             // 初始武器不再是「掉落武器」：角色自带的兵器在 Begin 开头用 EquipInnate 装上，
             // 它不占武器槽，也不会再走这里，否则同一把长弓会被算两把。

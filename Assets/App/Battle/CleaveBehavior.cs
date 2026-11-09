@@ -30,7 +30,7 @@ namespace App.Battle
 
             weapon.ResetCooldown(host.CooldownOf(weapon));
 
-            var origin = (Vector2)player.transform.position;
+            var origin = player.Position;
             var aim = player.FacingDirection;
             if (aim.sqrMagnitude < 0.0001f)
             {
@@ -71,7 +71,7 @@ namespace App.Battle
                 host.Context.DamageEnemy(enemy, damage);
             }
 
-            TransientFx.Fan(origin, angle, radius * 1.05f, SpreadDegrees, new Color(1f, 0.97f, 0.86f, 1f), 0.26f);
+            host.Views.Fan(origin, angle, radius * 1.05f, SpreadDegrees, new Color(1f, 0.97f, 0.86f, 1f), 0.26f);
         }
 
         public void Dispose(WeaponRuntime host, WeaponInstance weapon)

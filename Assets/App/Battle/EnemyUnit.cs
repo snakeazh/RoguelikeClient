@@ -146,7 +146,7 @@ namespace App.Battle
             _flash = 1f;
 
             var source = _runner != null && _runner.Player != null
-                ? (Vector2)_runner.Player.transform.position
+                ? _runner.Player.Position
                 : State.Position - Vector2.up;
 
             State.ApplyKnockback(source, amount);

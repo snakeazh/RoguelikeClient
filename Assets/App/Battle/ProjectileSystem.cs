@@ -175,7 +175,7 @@ namespace App.Battle
                 return;
             }
 
-            if (Vector2.Distance(state.Position, player.transform.position) > state.Radius + PlayerUnit.Radius)
+            if (Vector2.Distance(state.Position, player.Position) > state.Radius + PlayerUnit.Radius)
             {
                 return;
             }

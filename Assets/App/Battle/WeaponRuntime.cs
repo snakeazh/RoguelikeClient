@@ -17,6 +17,7 @@ namespace App.Battle
 
         private IBattleContext _runner;
         private BattleSession _session;
+        private IWeaponViews _views;
 
         public WeaponRuntime()
         {
@@ -30,15 +31,18 @@ namespace App.Battle
 
         public BattleSession Session => _session;
 
-        public PlayerUnit Player => _runner != null ? _runner.Player : null;
+        /// <summary>表现层端口：行为只描述"要画什么"，不自己 new GameObject。</summary>
+        public IWeaponViews Views => _views;
 
-        public Vector2 PlayerPosition =>
-            _runner != null && _runner.Player != null ? (Vector2)_runner.Player.transform.position : Vector2.zero;
+        public PlayerState Player => _runner != null ? _runner.Player : null;
 
-        public void Init(IBattleContext runner, BattleSession session)
+        public Vector2 PlayerPosition => _runner != null && _runner.Player != null ? _runner.Player.Position : Vector2.zero;
+
+        public void Init(IBattleContext runner, BattleSession session, IWeaponViews views)
         {
             _runner = runner;
             _session = session;
+            _views = views;
         }
 
         public void Dispose()
@@ -123,7 +127,7 @@ namespace App.Battle
 
             EnemyState best = null;
             var bestScore = float.MaxValue;
-            var origin = _runner.Player.State.Position;
+            var origin = _runner.Player.Position;
 
             foreach (var enemy in _runner.Enemies)
             {
@@ -170,8 +174,7 @@ namespace App.Battle
 
         private void TickAuraVisual()
         {
-            var player = Player;
-            if (player == null)
+            if (_views == null)
             {
                 return;
             }
@@ -188,12 +191,11 @@ namespace App.Battle
 
             if (aura == null)
             {
-                player.SetAuraVisible(false);
+                _views.ShowAura(false, 0f);
                 return;
             }
 
-            player.SetAuraVisible(true);
-            player.SetAuraRadius(AreaOf(aura, aura.Def.Area));
+            _views.ShowAura(true, AreaOf(aura, aura.Def.Area));
         }
 
         private WeaponInstance FindCannonWeapon()

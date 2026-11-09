@@ -9,7 +9,7 @@ namespace App.Battle
     {
         private sealed class Bomb
         {
-            public Transform Transform;
+            public IBombView View;
             public float Fuse;
             public DamageInfo Damage;
             public float Radius;
@@ -54,20 +54,9 @@ namespace App.Battle
                     : host.Session.Rng.NextInsideUnitCircle() * 0.25f;
                 var position = center + offset;
 
-                var bombGo = new GameObject("Bomb");
-                bombGo.transform.SetParent(host.Context.Root, false);
-                bombGo.transform.position = position;
-                BattleVisuals.Body(
-                    bombGo.transform,
-                    "Battle/Sprites/proj_bomb",
-                    Color.white,
-                    0.34f,
-                    BattleSort.Bomb,
-                    PlaceholderArt.Square);
-
                 bombs.Add(new Bomb
                 {
-                    Transform = bombGo.transform,
+                    View = host.Views.CreateBomb(position, 0.34f),
                     Fuse = Mathf.Max(0.2f, weapon.Def.Duration),
                     Damage = host.RollDamage(damage),
                     Radius = radius,
@@ -93,19 +82,14 @@ namespace App.Battle
             {
                 var bomb = bombs[i];
                 bomb.Fuse -= deltaTime;
-
-                if (bomb.Transform != null)
-                {
-                    var pulse = 1f + Mathf.Sin(host.Context.ElapsedSeconds * 26f) * 0.16f;
-                    bomb.Transform.localScale = Vector3.one * pulse;
-                }
+                bomb.View.Pulse(host.Context.ElapsedSeconds);
 
                 if (bomb.Fuse > 0f)
                 {
                     continue;
                 }
 
-                var position = bomb.Transform == null ? Vector3.zero : bomb.Transform.position;
+                var position = bomb.View.Position;
                 foreach (var enemy in host.Context.Enemies.ToArray())
                 {
                     if (enemy.IsDead)
@@ -119,12 +103,8 @@ namespace App.Battle
                     }
                 }
 
-                TransientFx.Flash(position, bomb.Radius * 2f, bomb.Color, 0.22f);
-
-                if (bomb.Transform != null)
-                {
-                    Object.Destroy(bomb.Transform.gameObject);
-                }
+                host.Views.Flash(position, bomb.Radius * 2f, bomb.Color, 0.22f);
+                bomb.View.Dispose();
 
                 bombs.RemoveAt(i);
             }
@@ -146,10 +126,7 @@ namespace App.Battle
         {
             foreach (var bomb in bombs)
             {
-                if (bomb.Transform != null)
-                {
-                    Object.Destroy(bomb.Transform.gameObject);
-                }
+                bomb.View.Dispose();
             }
 
             bombs.Clear();

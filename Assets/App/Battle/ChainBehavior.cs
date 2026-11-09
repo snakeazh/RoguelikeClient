@@ -45,12 +45,12 @@ namespace App.Battle
                 // 电弧：玩家 -> 第一个敌人，之后每跳在敌人之间连一段，越靠后越暗
                 var target = current.Position;
                 var boltColor = new Color(0.68f, 0.88f, 1f, Mathf.Lerp(1f, 0.55f, i / (float)jumps));
-                LightningFx.Bolt(boltFrom, target, boltColor, 0.15f + i * 0.015f);
+                host.Views.Bolt(boltFrom, target, boltColor, 0.15f + i * 0.015f);
                 boltFrom = target;
 
                 host.Context.DamageEnemy(current, host.RollDamage(damage));
 
-                TransientFx.Flash(current.Position, current.Radius * 2.4f, new Color(0.7f, 0.85f, 1f), 0.16f);
+                host.Views.Flash(current.Position, current.Radius * 2.4f, new Color(0.7f, 0.85f, 1f), 0.16f);
 
                 damage *= JumpFalloff;
                 current = FindNext(host, current, origin, weapon.Def.Range, chainRadius, visited);

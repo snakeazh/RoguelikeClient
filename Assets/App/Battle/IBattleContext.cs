@@ -21,10 +21,8 @@ namespace App.Battle
     /// </summary>
     public interface IBattleContext
     {
-        /// <summary>战场根节点，单位/弹体都挂到它下面。</summary>
-        Transform Root { get; }
-
-        PlayerUnit Player { get; }
+        /// <summary>玩家状态（纯数据）：行为层只读位置/朝向，不碰 MonoBehaviour。</summary>
+        PlayerState Player { get; }
 
         /// <summary>敌人状态列表（权威）：表现层据此维护视图，规则层只认状态。</summary>
         IReadOnlyList<EnemyState> Enemies { get; }
