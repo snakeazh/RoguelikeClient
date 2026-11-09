@@ -15,11 +15,11 @@ namespace App.Battle
     public static class BattleBootstrapper
     {
         /// <summary>建会话：种子 + 角色（决定血量/移速/本命武器），缺表时退回默认值。</summary>
-        public static BattleSession CreateSession(int seed, int characterId)
+        public static BattleSession CreateSession(BattleCatalog catalog, int seed, int characterId)
         {
-            var session = new BattleSession(seed);
+            var session = new BattleSession(catalog, seed);
 
-            var character = CharacterDef.Get(characterId > 0 ? characterId : BattleSession.DefaultCharacterId);
+            var character = catalog.Character(characterId > 0 ? characterId : BattleSession.DefaultCharacterId);
             if (character != null)
             {
                 session.SetCharacter(character);
@@ -30,7 +30,7 @@ namespace App.Battle
             }
 
             // 角色自带的武器：开局就有，不占武器槽。
-            var innate = WeaponDef.Get(session.InnateWeaponId);
+            var innate = catalog.Weapon(session.InnateWeaponId);
             if (innate != null)
             {
                 session.EquipInnate(innate);
@@ -50,7 +50,7 @@ namespace App.Battle
                 session,
                 walkable.center,
                 WaveStepRegistry.CreateDefault(),
-                WaveDef.All.Values,
+                session.Catalog.Waves,
                 PickupEffects.CreateDefault());
         }
 

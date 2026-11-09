@@ -110,7 +110,7 @@ namespace App.Battle
             var candidates = Session.AllWeapons.Where(w => !w.IsMaxLevel).ToList();
             if (candidates.Count == 0 && Session.CanAddWeapon)
             {
-                var missing = WeaponDef.All.Values.Where(d => d.Id < 100 && !Session.HasWeapon(d.Id)).ToList();
+                var missing = Session.Catalog.Weapons.Where(d => d.Id < 100 && !Session.HasWeapon(d.Id)).ToList();
                 if (missing.Count > 0)
                 {
                     Session.AddWeapon(missing[Session.Rng.Next(missing.Count)]);

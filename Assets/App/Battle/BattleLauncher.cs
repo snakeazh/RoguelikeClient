@@ -20,6 +20,7 @@ namespace App.Battle
     {
         private readonly IUIManager _ui;
         private readonly CharacterSelection _characters;
+        private readonly BattleCatalog _catalog;
         private readonly IResourceService _resources;
         private readonly BattleRecords _records;
         private readonly Func<HomeViewModel> _homeFactory;
@@ -28,12 +29,14 @@ namespace App.Battle
         public BattleLauncher(
             IUIManager ui,
             CharacterSelection characters,
+            BattleCatalog catalog,
             IResourceService resources,
             BattleRecords records,
             Func<HomeViewModel> homeFactory)
         {
             _ui = ui;
             _characters = characters;
+            _catalog = catalog;
             _resources = resources;
             _records = records;
             _homeFactory = homeFactory;
@@ -87,7 +90,7 @@ namespace App.Battle
 
                 // 规则层只发消息，怎么显示由 UI 层决定；headless 时用 NullBattleNotifier。
                 runner.Notifier = new ToastBattleNotifier();
-                runner.Begin(_ui, OnBattleExit, NextSeed, _characters.SelectedId, _records);
+                runner.Begin(_ui, OnBattleExit, _catalog, NextSeed, _characters.SelectedId, _records);
 
                 await _ui.Open(new BattleHudViewModel(runner));
                 AppLog.Info(LogChannel.Game, "[Battle] launcher started");

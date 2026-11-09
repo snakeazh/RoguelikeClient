@@ -13,10 +13,12 @@ namespace App.Battle
         public const string SaveKey = "battle.character.selected.v1";
 
         private readonly ISaveService _save;
+        private readonly BattleCatalog _catalog;
 
-        public CharacterSelection(ISaveService save)
+        public CharacterSelection(ISaveService save, BattleCatalog catalog)
         {
             _save = save;
+            _catalog = catalog;
         }
 
         /// <summary>当前选中的角色 Id；读表校验过，表里没有的 Id 会被纠回默认值。</summary>
@@ -25,7 +27,7 @@ namespace App.Battle
             get
             {
                 var id = _save.GetInt(SaveKey, BattleSession.DefaultCharacterId);
-                if (CharacterDef.Get(id) != null)
+                if (_catalog.Character(id) != null)
                 {
                     return id;
                 }
@@ -34,12 +36,12 @@ namespace App.Battle
             }
         }
 
-        public CharacterDef Selected => CharacterDef.Get(SelectedId);
+        public CharacterDef Selected => _catalog.Character(SelectedId);
 
         /// <summary>改选择并立刻落盘（Home 上的角色卡片用）。</summary>
         public void Select(int characterId)
         {
-            var def = CharacterDef.Get(characterId);
+            var def = _catalog.Character(characterId);
             if (def == null)
             {
                 AppLog.Warn(LogChannel.Game, $"[Battle] character {characterId} not found in Characters.json");

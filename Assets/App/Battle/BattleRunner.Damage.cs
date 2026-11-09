@@ -232,7 +232,7 @@ namespace App.Battle
 
         private void SpawnPickup(int defId, int amount, Vector2 position)
         {
-            var def = PickupDef.Get(defId);
+            var def = Session.Catalog.Pickup(defId);
             if (def == null)
             {
                 AppLog.Warn(LogChannel.Game, $"[Battle] pickup id {defId} not found");

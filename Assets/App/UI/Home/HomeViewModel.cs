@@ -23,6 +23,7 @@ namespace App.UI.Home
         private readonly BattleLauncher _battle;
         private readonly BattleRecords _records;
         private readonly CharacterSelection _characters;
+        private readonly BattleCatalog _catalog;
 
         public HomeViewModel(
             IUIManager ui,
@@ -30,7 +31,8 @@ namespace App.UI.Home
             IAudioService audio,
             BattleLauncher battle,
             BattleRecords records,
-            CharacterSelection characters)
+            CharacterSelection characters,
+            BattleCatalog catalog)
         {
             _ui = ui;
             _toast = toast;
@@ -38,6 +40,7 @@ namespace App.UI.Home
             _battle = battle;
             _records = records;
             _characters = characters;
+            _catalog = catalog;
 
             OpenDialogCommand = new RelayCommand(() => Run(OpenDialogAsync));
             ShowToastCommand = new RelayCommand(ShowToast);
@@ -101,7 +104,7 @@ namespace App.UI.Home
                 return;
             }
 
-            var weapon = WeaponDef.Get(def.InnateWeaponId);
+            var weapon = _catalog.Weapon(def.InnateWeaponId);
             var weaponName = weapon != null ? weapon.Name : "无";
             CharacterInfo.Value =
                 $"当前角色：{def.Name} · {def.MaxHp:0} 血 · {def.MoveSpeed:0.0} 速 · ★{weaponName}";

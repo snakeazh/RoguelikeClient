@@ -37,7 +37,7 @@ namespace App.Battle
             Session = session;
             Player = new PlayerState { Position = playerStart };
             Spawner = new EnemySpawner(waves, waveDefs);
-            _spawns = new SpawnSystem(session.Rng);
+            _spawns = new SpawnSystem(session.Rng, session.Catalog);
             _pickups = new PickupSystem(pickupEffects);
         }
 

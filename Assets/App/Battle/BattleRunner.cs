@@ -140,14 +140,14 @@ namespace App.Battle
             }
         }
 
-        public void Begin(IUIManager ui, Action onExit, int seed = 0, int characterId = 0, BattleRecords records = null)
+        public void Begin(IUIManager ui, Action onExit, BattleCatalog catalog, int seed = 0, int characterId = 0, BattleRecords records = null)
         {
             _ui = ui;
             _onExit = onExit;
             _records = records;
 
             // 战斗随机全部走 Session.Rng（种子在这里生效）；表现层才用 UnityEngine.Random。
-            Session = BattleBootstrapper.CreateSession(seed, characterId);
+            Session = BattleBootstrapper.CreateSession(catalog, seed, characterId);
 
             SetupMap();
 

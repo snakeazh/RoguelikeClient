@@ -13,10 +13,12 @@ namespace App.Battle
     public sealed class SpawnSystem
     {
         private readonly System.Random _rng;
+        private readonly BattleCatalog _catalog;
 
-        public SpawnSystem(System.Random rng)
+        public SpawnSystem(System.Random rng, BattleCatalog catalog)
         {
             _rng = rng;
+            _catalog = catalog;
         }
 
         /// <summary>每分钟血量成长（与改版前 `EnemySpawner.HpScale` 完全一致）。</summary>
@@ -41,7 +43,7 @@ namespace App.Battle
         /// </summary>
         public EnemyState Create(int defId, Vector2 position, EliteAffix affix, float elapsed, Rect walkable, float margin = 0.4f)
         {
-            var def = EnemyDef.Get(defId);
+            var def = _catalog.Enemy(defId);
             if (def == null)
             {
                 Debug.LogWarning($"[Spawn] enemy id {defId} not found");
@@ -54,7 +56,7 @@ namespace App.Battle
         /// <summary>Boss 不吃按分钟成长：强度完全由 `Enemies.json` 的血量决定。</summary>
         public EnemyState CreateBoss(int defId, Vector2 position, Rect walkable)
         {
-            var def = EnemyDef.Get(defId);
+            var def = _catalog.Enemy(defId);
             if (def == null)
             {
                 Debug.LogWarning($"[Spawn] boss id {defId} not found");

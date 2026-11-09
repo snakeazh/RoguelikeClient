@@ -22,7 +22,10 @@ namespace App.Bootstrap.Modules
         {
             var save = services.Resolve<ISaveService>();
 
-            Characters = new CharacterSelection(save);
+            var catalog = BattleCatalog.FromConfig();
+            services.RegisterInstance(catalog);
+
+            Characters = new CharacterSelection(save, catalog);
             services.RegisterInstance(Characters);
 
             var records = new BattleRecords(save);
@@ -34,6 +37,7 @@ namespace App.Bootstrap.Modules
             services.RegisterInstance(new BattleLauncher(
                 services.Resolve<IUIManager>(),
                 Characters,
+                catalog,
                 services.Resolve<IResourceService>(),
                 records,
                 services.Resolve<System.Func<HomeViewModel>>()));

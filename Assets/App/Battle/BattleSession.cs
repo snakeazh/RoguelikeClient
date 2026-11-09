@@ -84,11 +84,15 @@ namespace App.Battle
             }
         }
 
-        public BattleSession(int seed = 0)
+        public BattleSession(BattleCatalog catalog, int seed = 0)
         {
+            Catalog = catalog;
             Rng = seed == 0 ? new System.Random() : new System.Random(seed);
             Hp = MaxHp;
         }
+
+        /// <summary>本局读的配表快照；升级、进化、掉落都从这里查，不碰静态表。</summary>
+        public BattleCatalog Catalog { get; }
 
         // ---------- 派生属性（角色 + 被动叠加）----------
         /// <summary>没配角色表时的兜底数值，和旧版本保持一致。</summary>
@@ -151,7 +155,7 @@ namespace App.Battle
                     return 0;
                 }
 
-                var row = LevelDef.Get(Level);
+                var row = Catalog.Level(Level);
                 return row == null ? 9999 : Math.Max(1, row.ExpToNext);
             }
         }
@@ -389,7 +393,7 @@ namespace App.Battle
                 return null;
             }
 
-            var evolved = WeaponDef.Get(weapon.Def.EvolvedId);
+            var evolved = Catalog.Weapon(weapon.Def.EvolvedId);
             if (evolved == null)
             {
                 return null;

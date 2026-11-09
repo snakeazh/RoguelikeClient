@@ -88,7 +88,7 @@ namespace App.Battle
             switch (option.Kind)
             {
                 case ChoiceKind.WeaponNew:
-                    session.AddWeapon(WeaponDef.Get(option.DefId));
+                    session.AddWeapon(session.Catalog.Weapon(option.DefId));
                     break;
 
                 case ChoiceKind.WeaponUpgrade:
@@ -96,7 +96,7 @@ namespace App.Battle
                     break;
 
                 case ChoiceKind.PassiveNew:
-                    session.AddPassive(PassiveDef.Get(option.DefId));
+                    session.AddPassive(session.Catalog.Passive(option.DefId));
                     break;
 
                 case ChoiceKind.PassiveUpgrade:
@@ -154,7 +154,7 @@ namespace App.Battle
                 return;
             }
 
-            foreach (var def in WeaponDef.All.Values)
+            foreach (var def in session.Catalog.Weapons)
             {
                 // 进化形态不进普通掉落池，只能靠开宝箱进化。
                 if (def.Id >= 100 || session.HasWeapon(def.Id))
@@ -179,7 +179,7 @@ namespace App.Battle
                 return;
             }
 
-            foreach (var def in PassiveDef.All.Values)
+            foreach (var def in session.Catalog.Passives)
             {
                 if (session.FindPassive(def.Id) != null)
                 {
