@@ -317,9 +317,12 @@ namespace App.Battle
             }
         }
 
-        /// <summary>把本帧算好的状态同步到所有视图（敌人/弹体/拾取物）。</summary>
+        /// <summary>把本帧算好的状态同步到所有视图（玩家/敌人/弹体/拾取物）。</summary>
         private void SyncBattleViews(float deltaTime)
         {
+            // 玩家也一样：位置/朝向/半透明全部由 PlayerState 决定。漏掉这一句的表现是
+            // 「按键有输入、逻辑在走，但角色精灵钉在原地，镜头也不跟」。
+            Player.SyncFromState(deltaTime);
             SyncEnemyViews(deltaTime);
             SyncProjectileViews();
             SyncPickupViews();

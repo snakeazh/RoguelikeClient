@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text;
 using System.Threading.Tasks;
 using App.Battle;
@@ -300,6 +300,15 @@ namespace App.EditorTools
             var level = session.Level;
             SessionState.SetInt(KillsKey, kills);
             SessionState.SetInt(LevelKey, level);
+
+            // 表现层必须跟着逻辑走：玩家精灵钉在原地（而状态一直在动）时，玩家会以为「按键没反应」。
+            // 每帧对一次账，漂移超过一个身位就判失败，别再让这种回归悄悄溜过去。
+            var viewGap = Vector2.Distance(runner.Player.transform.position, runner.Player.State.Position);
+            if (viewGap > PlayerUnit.Radius)
+            {
+                Fail($"[BattleSmokeTest] player view drifted from state: gap={viewGap:0.00}");
+                return;
+            }
 
             // 升级弹窗会暂停战斗，冒烟测试里轮流选三张卡（避免永远只点第一张、Build 长不全）。
             var ui = AppServices.Resolve<IUIManager>();
