@@ -5,11 +5,11 @@ namespace App.Battle
     {
         public bool IsContinuous => false;
 
-        public void Tick(WaveState wave, float deltaTime, float elapsed, IBattleContext context)
+        public void Tick(WaveState wave, float deltaTime, float elapsed, IWaveContext context)
         {
         }
 
-        public void Fire(WaveState wave, float elapsed, IBattleContext context)
+        public void Fire(WaveState wave, float elapsed, IWaveContext context)
         {
             context.SpawnBoss(wave.Def.EnemyId, elapsed);
             context.Toast("Boss 出现！");

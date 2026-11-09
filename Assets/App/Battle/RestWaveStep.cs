@@ -5,11 +5,11 @@ namespace App.Battle
     {
         public bool IsContinuous => false;
 
-        public void Tick(WaveState wave, float deltaTime, float elapsed, IBattleContext context)
+        public void Tick(WaveState wave, float deltaTime, float elapsed, IWaveContext context)
         {
         }
 
-        public void Fire(WaveState wave, float elapsed, IBattleContext context)
+        public void Fire(WaveState wave, float elapsed, IWaveContext context)
         {
             context.DropRestPickups();
             context.Toast("短暂喘息，捡点补给吧");

@@ -8,15 +8,14 @@ namespace App.Battle
     {
         public bool IsContinuous => false;
 
-        public void Tick(WaveState wave, float deltaTime, float elapsed, IBattleContext context)
+        public void Tick(WaveState wave, float deltaTime, float elapsed, IWaveContext context)
         {
         }
 
-        public void Fire(WaveState wave, float elapsed, IBattleContext context)
+        public void Fire(WaveState wave, float elapsed, IWaveContext context)
         {
             var def = wave.Def;
-            var player = context.Player;
-            var center = player != null ? player.Position : Vector2.zero;
+            var center = context.PlayerPosition;
             var count = Mathf.Max(1, def.SpawnCount);
 
             for (var i = 0; i < count; i++)

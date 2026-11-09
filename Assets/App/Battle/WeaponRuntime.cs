@@ -15,7 +15,7 @@ namespace App.Battle
     {
         public const float MinCooldown = 0.12f;
 
-        private IBattleContext _runner;
+        private IWeaponContext _context;
         private BattleSession _session;
         private IWeaponViews _views;
 
@@ -27,20 +27,20 @@ namespace App.Battle
         /// <summary>随身炮台（魔法炮 / 湮灭炮），没有 Mount 武器时不存在。</summary>
         public CannonMount Cannon { get; }
 
-        public IBattleContext Context => _runner;
+        public IWeaponContext Context => _context;
 
         public BattleSession Session => _session;
 
         /// <summary>表现层端口：行为只描述"要画什么"，不自己 new GameObject。</summary>
         public IWeaponViews Views => _views;
 
-        public PlayerState Player => _runner != null ? _runner.Player : null;
+        public PlayerState Player => _context != null ? _context.Player : null;
 
-        public Vector2 PlayerPosition => _runner != null && _runner.Player != null ? _runner.Player.Position : Vector2.zero;
+        public Vector2 PlayerPosition => _context != null && _context.Player != null ? _context.Player.Position : Vector2.zero;
 
-        public void Init(IBattleContext runner, BattleSession session, IWeaponViews views)
+        public void Init(IWeaponContext context, BattleSession session, IWeaponViews views)
         {
-            _runner = runner;
+            _context = context;
             _session = session;
             _views = views;
         }
@@ -120,16 +120,16 @@ namespace App.Battle
         /// <summary>索敌：取射程内"距离 / 权重"最小的敌人，Boss 与精英加权（不然永远在打身边小怪）。</summary>
         public EnemyState FindNearestEnemy(float range)
         {
-            if (_runner == null || _runner.Player == null)
+            if (_context == null || _context.Player == null)
             {
                 return null;
             }
 
             EnemyState best = null;
             var bestScore = float.MaxValue;
-            var origin = _runner.Player.Position;
+            var origin = _context.Player.Position;
 
-            foreach (var enemy in _runner.Enemies)
+            foreach (var enemy in _context.Enemies)
             {
                 if (enemy.IsDead)
                 {

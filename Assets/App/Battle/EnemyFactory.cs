@@ -8,10 +8,10 @@ namespace App.Battle
     /// </summary>
     public sealed class EnemyFactory : IEnemyFactory
     {
-        private readonly IBattleContext _context;
+        private readonly IEnemyContext _context;
         private readonly Transform _root;
 
-        public EnemyFactory(IBattleContext context, Transform root)
+        public EnemyFactory(IEnemyContext context, Transform root)
         {
             _context = context;
             _root = root;

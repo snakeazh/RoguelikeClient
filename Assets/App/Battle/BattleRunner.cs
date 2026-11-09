@@ -20,7 +20,7 @@ namespace App.Battle
     /// - 敌人/弹体/拾取物都是普通 List + 每帧倒序遍历销毁，规模在几百个单位以内足够；
     /// - 流程状态收敛在 <see cref="BattlePhase"/>：只有 Running 推进模拟，升级/暂停/结算都在等面板或玩家。
     /// </summary>
-    public sealed partial class BattleRunner : MonoBehaviour, IBattleContext, IPickupContext, IEnemyContext
+    public sealed partial class BattleRunner : MonoBehaviour, IWaveContext, IWeaponContext, IProjectileContext, IPickupContext, IEnemyContext
     {
         /// <summary>敌人视图：状态是权威，这里只保存「状态 → 显示对象」的映射。</summary>
         private readonly Dictionary<EnemyState, EnemyUnit> _enemyViews = new Dictionary<EnemyState, EnemyUnit>(256);
@@ -63,9 +63,10 @@ namespace App.Battle
         public PlayerUnit Player { get; private set; }
 
         /// <summary>规则层视角的玩家：纯数据，行为层据此算位置与朝向。</summary>
-        PlayerState IBattleContext.Player => _simulation?.Player;
+        PlayerState IWeaponContext.Player => _simulation?.Player;
+
+        PlayerState IProjectileContext.Player => _simulation?.Player;
         public IReadOnlyList<EnemyState> Enemies => _simulation != null ? _simulation.Enemies : System.Array.Empty<EnemyState>();
-        public Transform Root => transform;
         public float ElapsedSeconds => Session != null ? Session.Elapsed : 0f;
         public IReadOnlyList<ProjectileUnit> Projectiles => _projectiles;
         public IReadOnlyList<PickupUnit> Pickups => _pickups;
@@ -268,6 +269,7 @@ namespace App.Battle
 
             // 规则层：一次 Tick 走完玩家位移 → 刷怪 → 敌人 → 接触 → 武器 → 弹体 → 拾取。
             var world = new SimulationWorld(
+                this,
                 this,
                 this,
                 this,

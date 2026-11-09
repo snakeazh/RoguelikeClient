@@ -10,7 +10,7 @@ namespace App.Battle
     {
         public bool IsContinuous => true;
 
-        public void Tick(WaveState wave, float deltaTime, float elapsed, IBattleContext context)
+        public void Tick(WaveState wave, float deltaTime, float elapsed, IWaveContext context)
         {
             var def = wave.Def;
             if (elapsed < def.Time || elapsed >= def.Time + def.Duration)
@@ -33,7 +33,7 @@ namespace App.Battle
             }
         }
 
-        public void Fire(WaveState wave, float elapsed, IBattleContext context)
+        public void Fire(WaveState wave, float elapsed, IWaveContext context)
         {
         }
     }

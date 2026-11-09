@@ -11,7 +11,7 @@ namespace App.Battle
     /// </summary>
     public sealed class EnemyUnit : MonoBehaviour
     {
-        private IBattleContext _runner;
+        private IEnemyContext _context;
         private SpriteRenderer _body;
         private SpriteRenderer _shadow;
 
@@ -60,9 +60,9 @@ namespace App.Battle
         /// 绑定一份已经算好的状态（数值与出生点位由 <see cref="SpawnSystem"/> 决定），
         /// 这里只把状态画出来：精灵、阴影、精英染色、排序。
         /// </summary>
-        public void Init(IBattleContext runner, EnemyState state)
+        public void Init(IEnemyContext runner, EnemyState state)
         {
-            _runner = runner;
+            _context = runner;
             State = state;
 
             var def = state.Def;
@@ -145,8 +145,8 @@ namespace App.Battle
         {
             _flash = 1f;
 
-            var source = _runner != null && _runner.Player != null
-                ? _runner.Player.Position
+            var source = _context != null
+                ? _context.PlayerPosition
                 : State.Position - Vector2.up;
 
             State.ApplyKnockback(source, amount);
@@ -200,7 +200,7 @@ namespace App.Battle
                 _fuseTinted = true;
             }
 
-            var elapsed = _runner != null ? _runner.ElapsedSeconds : 0f;
+            var elapsed = _context != null ? _context.ElapsedSeconds : 0f;
             var pulse = 1f + Mathf.Sin(elapsed * 20f) * 0.08f;
             transform.localScale = Vector3.one * pulse;
         }

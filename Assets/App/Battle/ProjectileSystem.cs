@@ -5,7 +5,7 @@ namespace App.Battle
 {
     /// <summary>
     /// 弹体规则（P3-1）：推进、追踪、命中判定、穿透、溅射。
-    /// 只改 <see cref="ProjectileState"/>，通过 <see cref="IBattleContext"/> 查询敌人/玩家并结算伤害。
+    /// 只改 <see cref="ProjectileState"/>，通过 <see cref="IProjectileContext"/> 查询敌人/玩家并结算伤害。
     /// 表现（精灵、旋转）由 <see cref="ProjectileUnit"/> 从 State 同步。
     /// </summary>
     public sealed class ProjectileSystem
@@ -66,7 +66,7 @@ namespace App.Battle
             return state;
         }
 
-        public void Tick(float deltaTime, IBattleContext context)
+        public void Tick(float deltaTime, IProjectileContext context)
         {
             for (var i = _states.Count - 1; i >= 0; i--)
             {
@@ -91,7 +91,7 @@ namespace App.Battle
             _states.Clear();
         }
 
-        private static void TickOne(ProjectileState state, float deltaTime, IBattleContext context)
+        private static void TickOne(ProjectileState state, float deltaTime, IProjectileContext context)
         {
             state.Life -= deltaTime;
             if (state.Life <= 0f)
@@ -131,7 +131,7 @@ namespace App.Battle
             }
         }
 
-        private static void HitEnemies(ProjectileState state, IBattleContext context)
+        private static void HitEnemies(ProjectileState state, IProjectileContext context)
         {
             s_targets.Clear();
             s_targets.AddRange(context.Enemies);
@@ -166,7 +166,7 @@ namespace App.Battle
             }
         }
 
-        private static void HitPlayer(ProjectileState state, IBattleContext context)
+        private static void HitPlayer(ProjectileState state, IProjectileContext context)
         {
             var player = context.Player;
             if (player == null)

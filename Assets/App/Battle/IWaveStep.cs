@@ -12,9 +12,9 @@ namespace App.Battle
         bool IsContinuous { get; }
 
         /// <summary>持续型波次每帧推进。</summary>
-        void Tick(WaveState wave, float deltaTime, float elapsed, IBattleContext context);
+        void Tick(WaveState wave, float deltaTime, float elapsed, IWaveContext context);
 
         /// <summary>一次性波次到点触发。</summary>
-        void Fire(WaveState wave, float elapsed, IBattleContext context);
+        void Fire(WaveState wave, float elapsed, IWaveContext context);
     }
 }

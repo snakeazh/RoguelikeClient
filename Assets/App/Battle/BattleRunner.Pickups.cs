@@ -36,6 +36,12 @@ namespace App.Battle
         // ---------- IPickupContext ----------
         public Vector3 PlayerPosition => Player != null ? Player.transform.position : Vector3.zero;
 
+        // ---------- IWaveContext / IWeaponContext ----------
+        // 与 IEnemyContext 同样显式实现：拾取/爆炸特效要 Vector3，规则层只认平面位置。
+        Vector2 IWaveContext.PlayerPosition => _simulation != null ? _simulation.Player.Position : Vector2.zero;
+
+        Vector2 IWeaponContext.PlayerPosition => _simulation != null ? _simulation.Player.Position : Vector2.zero;
+
         /// <summary>逻辑随机源：与表现层共用的 `UnityEngine.Random` 分开，保证同种子可复现。</summary>
         public System.Random Rng => Session != null ? Session.Rng : null;
 

@@ -55,7 +55,7 @@ namespace App.Battle
         }
 
         /// <summary>建武器层：规则只认 <see cref="IWeaponViews"/>，具体是 Unity 还是空实现由这里决定。</summary>
-        public static WeaponRuntime CreateWeapons(IBattleContext context, BattleSession session, Transform root, PlayerUnit player)
+        public static WeaponRuntime CreateWeapons(IWeaponContext context, BattleSession session, Transform root, PlayerUnit player)
         {
             var weapons = new WeaponRuntime();
             weapons.Init(context, session, new UnityWeaponViews(root, player));

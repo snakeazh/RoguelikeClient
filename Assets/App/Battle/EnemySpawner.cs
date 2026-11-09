@@ -25,7 +25,7 @@ namespace App.Battle
         }
 
 
-        public void Tick(float deltaTime, float elapsed, IBattleContext context)
+        public void Tick(float deltaTime, float elapsed, IWaveContext context)
         {
             for (var i = 0; i < _waves.Count; i++)
             {

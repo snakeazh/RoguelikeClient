@@ -90,9 +90,9 @@ namespace App.Battle
             Session.TickTime(deltaTime);
             BattleAllocProbe.End("player", alloc);
 
-            // 刷怪用整场上下文（波次要能刷怪/刷 Boss/掉补给/报警），敌人规则只读敌人上下文。
+            // 刷怪用波次上下文（只够刷怪/刷 Boss/掉补给/报警），敌人规则只读敌人上下文。
             alloc = BattleAllocProbe.Begin();
-            Spawner.Tick(deltaTime, Session.Elapsed, world.Battle);
+            Spawner.Tick(deltaTime, Session.Elapsed, world.Waves);
             BattleAllocProbe.End("spawn", alloc);
 
             alloc = BattleAllocProbe.Begin();
@@ -105,7 +105,7 @@ namespace App.Battle
             BattleAllocProbe.End("weapons", alloc);
 
             alloc = BattleAllocProbe.Begin();
-            _projectiles.Tick(deltaTime, world.Battle);
+            _projectiles.Tick(deltaTime, world.Projectiles);
             _pickups.Tick(deltaTime, Player.Position, true, world.MagnetRadius, world.Pickups);
             BattleAllocProbe.End("projectile+pickup", alloc);
 
@@ -147,11 +147,5 @@ namespace App.Battle
             _projectiles.Clear();
             _pickups.Clear();
         }
-    }
-
-    /// <summary>参与模拟的子系统（目前只有武器）。加进来是为了让 <see cref="BattleSimulation"/> 保持纯编排。</summary>
-    public interface ISimulationStep
-    {
-        void Tick(float deltaTime);
     }
 }

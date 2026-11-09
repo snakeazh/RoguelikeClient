@@ -9,10 +9,15 @@ namespace App.Battle
     /// 之所以做成值类型集中传参：模拟层（<see cref="BattleSimulation"/>）不该知道
     /// <see cref="BattleRunner"/> 的存在，只该知道「这一帧敌人状态列表长什么样、玩家输入是什么、
     /// 是否被沙漏冻结」。headless 回归时换成纯数据的实现即可。
+    ///
+    /// 上下文按消费者拆开：波次只拿 <see cref="Waves"/>，弹体只拿 <see cref="Projectiles"/>，
+    /// 各系统看不到自己用不上的副作用。
     /// </summary>
     public readonly struct SimulationWorld
     {
-        public readonly IBattleContext Battle;
+        public readonly IWaveContext Waves;
+
+        public readonly IProjectileContext Projectiles;
 
         public readonly IPickupContext Pickups;
 
@@ -31,7 +36,8 @@ namespace App.Battle
         public readonly float MagnetRadius;
 
         public SimulationWorld(
-            IBattleContext battle,
+            IWaveContext waves,
+            IProjectileContext projectiles,
             IPickupContext pickups,
             IEnemyContext enemies,
             List<EnemyState> enemyStates,
@@ -40,7 +46,8 @@ namespace App.Battle
             bool frozen,
             float magnetRadius)
         {
-            Battle = battle;
+            Waves = waves;
+            Projectiles = projectiles;
             Pickups = pickups;
             Enemies = enemies;
             EnemyStates = enemyStates;
