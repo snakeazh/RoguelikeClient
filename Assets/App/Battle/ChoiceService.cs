@@ -30,183 +30,50 @@ namespace App.Battle
     /// - 已持有且未满级的项权重更高（更容易被抽到）；
     /// - 至少保底一个升级项，避免三选一全是新东西导致 Build 卡在 Lv1；
     /// - 没有可选项时给"回复 30% HP"。
+    ///
+    /// 生成分三步：<c>收集候选 → 洗牌 → 按槽位拼盘</c>，
+    /// 每一步各自一个方法，改规则时只动其中一步（洗牌顺序决定同种子的抽卡结果，别随手调）。
     /// </summary>
     public static class ChoiceService
     {
         private const int OptionCount = 3;
 
+        private const float HealPercent = 0.3f;
+
+        /// <summary>本局的候选池：升级项、新武器、新被动三堆，互不干扰。</summary>
+        private sealed class Candidates
+        {
+            public readonly List<ChoiceOption> Upgrades = new List<ChoiceOption>();
+
+            public readonly List<ChoiceOption> WeaponNews = new List<ChoiceOption>();
+
+            public readonly List<ChoiceOption> PassiveNews = new List<ChoiceOption>();
+        }
+
         public static List<ChoiceOption> Build(BattleSession session)
         {
-            var upgrades = new List<ChoiceOption>();
-            var news = new List<ChoiceOption>();
+            var candidates = new Candidates();
+            CollectUpgrades(session, candidates);
+            CollectNewWeapons(session, candidates);
+            CollectNewPassives(session, candidates);
 
-            // 本命武器也能升级（它在 AllWeapons 末尾，不占槽位）
-            foreach (var weapon in session.AllWeapons)
-            {
-                if (!weapon.IsMaxLevel)
-                {
-                    upgrades.Add(new ChoiceOption
-                    {
-                        Kind = ChoiceKind.WeaponUpgrade,
-                        DefId = weapon.Def.Id,
-                        Name = weapon.Def.Name,
-                        Description = $"Lv{weapon.Level} → Lv{weapon.Level + 1}：伤害与范围提升"
-                    });
-                }
-            }
-
-            foreach (var passive in session.Passives)
-            {
-                if (!passive.IsMaxLevel)
-                {
-                    upgrades.Add(new ChoiceOption
-                    {
-                        Kind = ChoiceKind.PassiveUpgrade,
-                        DefId = passive.Def.Id,
-                        Name = passive.Def.Name,
-                        Description = $"Lv{passive.Level} → Lv{passive.Level + 1}：{passive.Def.Description}"
-                    });
-                }
-            }
-
-            if (session.CanAddWeapon)
-            {
-                foreach (var def in WeaponDef.All.Values)
-                {
-                    // 进化形态不进普通掉落池，只能靠开宝箱进化。
-                    if (def.Id >= 100)
-                    {
-                        continue;
-                    }
-
-                    if (!session.HasWeapon(def.Id))
-                    {
-                        news.Add(new ChoiceOption
-                        {
-                            Kind = ChoiceKind.WeaponNew,
-                            DefId = def.Id,
-                            Name = def.Name,
-                            Description = $"新武器：{def.Description}"
-                        });
-                    }
-                }
-            }
-
-            if (session.CanAddPassive)
-            {
-                foreach (var def in PassiveDef.All.Values)
-                {
-                    if (session.FindPassive(def.Id) == null)
-                    {
-                        news.Add(new ChoiceOption
-                        {
-                            Kind = ChoiceKind.PassiveNew,
-                            DefId = def.Id,
-                            Name = def.Name,
-                            Description = $"新被动：{def.Description}"
-                        });
-                    }
-                }
-            }
+            // 洗牌顺序即抽卡顺序：武器新闻 → 被动新闻 → 升级，改动会让同种子的结果分叉。
+            Shuffle(candidates.WeaponNews, session.Rng);
+            Shuffle(candidates.PassiveNews, session.Rng);
+            Shuffle(candidates.Upgrades, session.Rng);
 
             var result = new List<ChoiceOption>(OptionCount);
-            var rng = session.Rng;
-
-            var weaponNews = new List<ChoiceOption>();
-            var passiveNews = new List<ChoiceOption>();
-            foreach (var option in news)
-            {
-                if (option.Kind == ChoiceKind.WeaponNew)
-                {
-                    weaponNews.Add(option);
-                }
-                else
-                {
-                    passiveNews.Add(option);
-                }
-            }
-
-            Shuffle(weaponNews, rng);
-            Shuffle(passiveNews, rng);
-            Shuffle(upgrades, rng);
-
-            // 保底：某把武器已满级、但配套被动还没满级时，优先推它的被动，
-            // 不然「Lv5 武器 + 满级被动 → 宝箱进化」几乎凑不齐。
-            var evolutionPity = new List<ChoiceOption>();
-            foreach (var weapon in session.AllWeapons)
-            {
-                if (!weapon.IsMaxLevel || weapon.Def.EvolvedId <= 0)
-                {
-                    continue;
-                }
-
-                // 本命武器也照顾，但排在后半段：玩家想要的 build 不应该被本命武器抢走选项
-                var paired = session.FindPassive(weapon.Def.PassiveId);
-                if (paired == null || paired.IsMaxLevel)
-                {
-                    continue;
-                }
-
-                foreach (var option in upgrades)
-                {
-                    if (option.Kind == ChoiceKind.PassiveUpgrade && option.DefId == paired.Def.Id)
-                    {
-                        if (weapon.IsInnate)
-                        {
-                            evolutionPity.Add(option);
-                        }
-                        else
-                        {
-                            evolutionPity.Insert(0, option);
-                        }
-
-                        break;
-                    }
-                }
-            }
+            var evolutionPity = CollectEvolutionPity(session, candidates.Upgrades);
 
             // 结构上保证「升级 / 新武器 / 新被动」各占一个位置：
             // 不然纯随机池子很容易连着出三个升级，Build 永远长不全。
             TryAddDistinct(result, evolutionPity);
-            TryAddDistinct(result, weaponNews);
-            TryAddDistinct(result, passiveNews);
-            TryAddDistinct(result, upgrades);
+            TryAddDistinct(result, candidates.WeaponNews);
+            TryAddDistinct(result, candidates.PassiveNews);
+            TryAddDistinct(result, candidates.Upgrades);
 
-            var pool = new List<ChoiceOption>();
-            pool.AddRange(weaponNews);
-            pool.AddRange(passiveNews);
-            pool.AddRange(upgrades);
-            Shuffle(pool, rng);
-
-            for (var i = 0; i < pool.Count && result.Count < OptionCount; i++)
-            {
-                if (!ContainsSame(result, pool[i]))
-                {
-                    result.Add(pool[i]);
-                }
-            }
-
-            if (result.Count == 0)
-            {
-                result.Add(new ChoiceOption
-                {
-                    Kind = ChoiceKind.Heal,
-                    Name = "小蛋糕",
-                    Description = "回复 30% 最大生命值"
-                });
-            }
-
-            // 不足 3 个时用回血补位（例如槽全满、全部满级）。
-            while (result.Count < OptionCount)
-            {
-                result.Add(new ChoiceOption
-                {
-                    Kind = ChoiceKind.Heal,
-                    Name = "小蛋糕",
-                    Description = "回复 30% 最大生命值"
-                });
-            }
-
+            FillFromPool(result, candidates, session.Rng);
+            FillWithHeal(result);
             return result;
         }
 
@@ -237,9 +104,183 @@ namespace App.Battle
                     break;
 
                 case ChoiceKind.Heal:
-                    session.HealPercent(0.3f);
+                    session.HealPercent(HealPercent);
                     break;
             }
+        }
+
+        // ---------- 第一步：收集候选 ----------
+
+        private static void CollectUpgrades(BattleSession session, Candidates candidates)
+        {
+            // 本命武器也能升级（它在 AllWeapons 末尾，不占槽位）
+            foreach (var weapon in session.AllWeapons)
+            {
+                if (weapon.IsMaxLevel)
+                {
+                    continue;
+                }
+
+                candidates.Upgrades.Add(new ChoiceOption
+                {
+                    Kind = ChoiceKind.WeaponUpgrade,
+                    DefId = weapon.Def.Id,
+                    Name = weapon.Def.Name,
+                    Description = $"Lv{weapon.Level} → Lv{weapon.Level + 1}：伤害与范围提升"
+                });
+            }
+
+            foreach (var passive in session.Passives)
+            {
+                if (passive.IsMaxLevel)
+                {
+                    continue;
+                }
+
+                candidates.Upgrades.Add(new ChoiceOption
+                {
+                    Kind = ChoiceKind.PassiveUpgrade,
+                    DefId = passive.Def.Id,
+                    Name = passive.Def.Name,
+                    Description = $"Lv{passive.Level} → Lv{passive.Level + 1}：{passive.Def.Description}"
+                });
+            }
+        }
+
+        private static void CollectNewWeapons(BattleSession session, Candidates candidates)
+        {
+            if (!session.CanAddWeapon)
+            {
+                return;
+            }
+
+            foreach (var def in WeaponDef.All.Values)
+            {
+                // 进化形态不进普通掉落池，只能靠开宝箱进化。
+                if (def.Id >= 100 || session.HasWeapon(def.Id))
+                {
+                    continue;
+                }
+
+                candidates.WeaponNews.Add(new ChoiceOption
+                {
+                    Kind = ChoiceKind.WeaponNew,
+                    DefId = def.Id,
+                    Name = def.Name,
+                    Description = $"新武器：{def.Description}"
+                });
+            }
+        }
+
+        private static void CollectNewPassives(BattleSession session, Candidates candidates)
+        {
+            if (!session.CanAddPassive)
+            {
+                return;
+            }
+
+            foreach (var def in PassiveDef.All.Values)
+            {
+                if (session.FindPassive(def.Id) != null)
+                {
+                    continue;
+                }
+
+                candidates.PassiveNews.Add(new ChoiceOption
+                {
+                    Kind = ChoiceKind.PassiveNew,
+                    DefId = def.Id,
+                    Name = def.Name,
+                    Description = $"新被动：{def.Description}"
+                });
+            }
+        }
+
+        /// <summary>
+        /// 保底：某把武器已满级、但配套被动还没满级时，优先推它的被动，
+        /// 不然「Lv5 武器 + 满级被动 → 宝箱进化」几乎凑不齐。
+        /// </summary>
+        private static List<ChoiceOption> CollectEvolutionPity(BattleSession session, List<ChoiceOption> upgrades)
+        {
+            var pity = new List<ChoiceOption>();
+            foreach (var weapon in session.AllWeapons)
+            {
+                if (!weapon.IsMaxLevel || weapon.Def.EvolvedId <= 0)
+                {
+                    continue;
+                }
+
+                var paired = session.FindPassive(weapon.Def.PassiveId);
+                if (paired == null || paired.IsMaxLevel)
+                {
+                    continue;
+                }
+
+                foreach (var option in upgrades)
+                {
+                    if (option.Kind != ChoiceKind.PassiveUpgrade || option.DefId != paired.Def.Id)
+                    {
+                        continue;
+                    }
+
+                    // 本命武器也照顾，但排在后半段：玩家想要的 build 不应该被本命武器抢走选项
+                    if (weapon.IsInnate)
+                    {
+                        pity.Add(option);
+                    }
+                    else
+                    {
+                        pity.Insert(0, option);
+                    }
+
+                    break;
+                }
+            }
+
+            return pity;
+        }
+
+        // ---------- 第二步：拼盘 ----------
+
+        private static void FillFromPool(List<ChoiceOption> result, Candidates candidates, System.Random rng)
+        {
+            var pool = new List<ChoiceOption>();
+            pool.AddRange(candidates.WeaponNews);
+            pool.AddRange(candidates.PassiveNews);
+            pool.AddRange(candidates.Upgrades);
+            Shuffle(pool, rng);
+
+            for (var i = 0; i < pool.Count && result.Count < OptionCount; i++)
+            {
+                if (!ContainsSame(result, pool[i]))
+                {
+                    result.Add(pool[i]);
+                }
+            }
+        }
+
+        private static void FillWithHeal(List<ChoiceOption> result)
+        {
+            if (result.Count == 0)
+            {
+                result.Add(HealOption());
+            }
+
+            // 不足 3 个时用回血补位（例如槽全满、全部满级）。
+            while (result.Count < OptionCount)
+            {
+                result.Add(HealOption());
+            }
+        }
+
+        private static ChoiceOption HealOption()
+        {
+            return new ChoiceOption
+            {
+                Kind = ChoiceKind.Heal,
+                Name = "小蛋糕",
+                Description = "回复 30% 最大生命值"
+            };
         }
 
         private static WeaponInstance FindWeapon(BattleSession session, int defId)

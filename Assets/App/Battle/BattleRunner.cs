@@ -344,9 +344,12 @@ namespace App.Battle
             SyncPickupViews();
         }
 
+        /// <summary>界面出口：由组合根注入（UI 层用 Toast，headless 用 <see cref="NullBattleNotifier"/>）。</summary>
+        public IBattleNotifier Notifier { get; set; } = NullBattleNotifier.Instance;
+
         public void Toast(string message)
         {
-            App.UI.Toast.Show(message, 1.2f);
+            Notifier.Notify(message);
         }
 
         /// <summary>结算时清场：结算面板后面不该再留着敌人、弹体与掉落物。</summary>

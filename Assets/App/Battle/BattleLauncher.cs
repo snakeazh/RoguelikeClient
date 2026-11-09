@@ -80,11 +80,14 @@ namespace App.Battle
                 var runner = go.AddComponent<BattleRunner>();
                 Runner = runner;
                 runner.FixedStepSeconds = NextFixedStep;
-            if (NextSimulationSpeed > 0f)
-            {
-                runner.SimulationSpeed = NextSimulationSpeed;
-            }
-            runner.Begin(_ui, OnBattleExit, NextSeed, _characters.SelectedId, _records);
+                if (NextSimulationSpeed > 0f)
+                {
+                    runner.SimulationSpeed = NextSimulationSpeed;
+                }
+
+                // 规则层只发消息，怎么显示由 UI 层决定；headless 时用 NullBattleNotifier。
+                runner.Notifier = new ToastBattleNotifier();
+                runner.Begin(_ui, OnBattleExit, NextSeed, _characters.SelectedId, _records);
 
                 await _ui.Open(new BattleHudViewModel(runner));
                 AppLog.Info(LogChannel.Game, "[Battle] launcher started");
