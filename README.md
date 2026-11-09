@@ -26,7 +26,8 @@ Unity 版本：`2022.3.62f3`（见 `ProjectSettings/ProjectVersion.txt`）。
 | `Assets/Framework/UI` | UI 核心：`UIFramework`、`UIManager`、`UINavigator`、`ScreenRegistry`、`ViewBase/ViewModelBase`、`Binding`、`DI`、`Dialog`、`List`、`Navigation` |
 | `Assets/Framework/框架使用文档.md` | 框架原始文档，改框架前先读 |
 | `Assets/App` | 业务地基：启动、服务容器、音频、网络、配置表、Toast、对话框、通用特效、编辑器工具 |
-| `Assets/App/Battle` | 类幸存者战斗骨架：主循环、玩家/敌人/武器/弹体/拾取、升级三选一，见 `战斗系统.md` |
+| `Assets/App/Battle` | 类幸存者战斗骨架：Session/Simulation/六个 System/行为注册表/视图端口/视图池，文件表见 `战斗系统.md` |
+| `Client/Docs/重构计划.md` | 架构演进记录（P1/P2/P3 各轮改了什么、为什么、当前基线） |
 | `Assets/Res` | 运行期资源，**Key = 相对 `Assets/Res` 的无扩展名路径**，bundle 名取第一段小写 |
 | `Assets/Plugins/Demigiant` | DOTween（弹窗动画依赖它） |
 | `Assets/TextMesh Pro` | TMP 本体与字体，界面文案统一用 `TextMeshProUGUI` |
@@ -54,7 +55,7 @@ Unity 版本：`2022.3.62f3`（见 `ProjectSettings/ProjectVersion.txt`）。
 | Net | `NetModule.cs` | `HttpApiClient` | Save |
 | Config | `ConfigModule.cs` | （静态配置表） | Resource |
 | UI | `UiModule.cs` | `IUIManager` / `IUINavigator` / `IDialogService` / `ToastService`（同时安装 `UiServices`） | Resource（且 `UI/UIRoot` 已进缓存） |
-| BattleServices | `BattleServicesModule.cs` | `CharacterSelection` / `BattleRecords` / `BattleLauncher`（全构造注入） | Save, UI, Resource |
+| BattleServices | `BattleServicesModule.cs` | `BattleCatalog`（配表快照）/ `CharacterSelection` / `BattleRecords` / `BattleLauncher`（全构造注入） | Save, UI, Resource |
 
 `Config` 必须在 `UI` 之前（ViewModel 构造函数经常直接读表）；`BattleLauncher` 依赖 `IUIManager`，
 所以 `BattleServices` 排在 `UI` 之后。加一个新系统就是写一个 `IGameModule` 再 `Add` 一行，
@@ -128,10 +129,38 @@ camelCase JSON、401 自动清 token、超时 15s、失败抛 `GameApiException(
 - 角色：首页两张卡片选人（游侠 90 血 / 5.4 速 / ★长弓，剑士 125 血 / 4.6 速 / ★大剑），
   选择存 `battle.character.selected.v1`；角色自带的兵器不占武器槽，可升级、可进化。
   数值在 `Assets/Res/Config/Battle/Characters.json`，改表即改角色。
-- 主循环：`Assets/App/Battle/BattleRunner.cs`；纯数据在 `BattleSession`；升级三选一在 `ChoiceService`。
+- 分层（依赖单向，只允许上层知道下层）：
+
+  ```
+  BattleLauncher（入口：关首页、开 HUD）
+    └─ BattleBootstrapper（组合根：建 Session / Simulation / Experience / 视图池）
+         └─ BattleRunner（表现宿主：驱动固定步长、把 State 同步到 SpriteRenderer/UI）
+              └─ BattleSimulation（只编排，不写规则）
+                   ├─ PlayerSim / EnemySystem / ContactSystem
+                   ├─ ProjectileSystem / PickupSystem
+                   └─ SpawnSystem（波次由 WaveStepRegistry 里的 IWaveStep 组合）
+                        └─ State（PlayerState / EnemyState / ProjectileState / PickupState / WaveState）
+  ```
+
+  规则层只认 `IWeaponContext` / `IEnemyContext` / `IProjectileContext` / `IWaveContext` / `IPickupContext`，
+  **不认识 MonoBehaviour**；表现层通过 `IWeaponViews`、`IBattleNotifier` 这些端口被动接收请求。
+  纯数据在 `BattleSession`（含 `BattleCatalog` 配表索引），升级三选一在 `ChoiceService`。
+- 扩展新内容：新武器形态 = 实现 `IWeaponBehavior` + 在 `WeaponBehaviors` 注册一行；新敌人行为 = `IEnemyBehavior`
+  + `EnemyBehaviors`；新波次 = `IWaveStep` + `WaveStepRegistry`；新拾取效果 = `IPickupEffect` + `PickupEffects`。
+  都不需要改 `BattleSimulation`，武器/敌人/Boss 的行为由注册表按 `Kind`/`Behavior` 取。
+- 视图生命周期统一走 `ViewPool<T>`（`Assets/App/Battle/ViewPools.cs`）：敌人、弹体、拾取物、瞬时特效、闪电
+  全部租/还，不再每帧 `Instantiate`/`Destroy`；`EnemyUnit.Init` 会重置闪白、排序号与缩放，避免复用残留。
+- 确定性（可复现）：逻辑时钟是 `Session.Elapsed`，渲染帧率不影响结果；`BattleRunner.FixedStepSeconds` 固定步长、
+  随机数全走 `Session.Rng`（`BattleRandom` 封装）；同种子两次 300 秒结果逐位一致
+  （`-battleSeed 987654 -battleFixedStep 1` → `victory, kills=1145, level=20, time=295.5s`）。
+  **视图不能反向喂逻辑**（例如炮口位置），否则出生点会随帧率抖动、同种子分叉。
+- 性能：冒烟结束时打 `[Perf] frames=… avgFrameMs=… gc0=… wall=…s`；300 秒 20 倍速基线
+  `frames≈3030–3106, avgFrameMs≈16.7, gc0≈255–273`。`-battleAlloc 1` 会额外打 `[Alloc]` 分帧尾/战斗段字节，
+  用于判断垃圾产生在脚本层还是引擎帧尾（batchmode 的 gc0 不能当成客户端 gc0）。
 - 操作：左半屏任意位置按下即出现动态摇杆；右下 260×260 区域点按冲刺（2.5 身位 / 0.2s / 无敌 0.3s / CD 3s）。
-- 内容：8 把武器（投射/环绕/追踪/光环/扇形剑气/连锁闪电/定时炸弹）+ 8 把进化武器、
-  10 个被动、7 种敌人 + 5 种精英词缀、3 个 Boss（半血二阶段）、经验升级三选一、7 种拾取物。
+- 内容：9 把武器（投射/追踪/环绕/光环/扇形剑气/连锁闪电/定时炸弹/毒雾瓶）+ 8 把进化武器
+  （毒雾瓶暂缺进化，见 `Docs/重构计划.md` 的玩法缺口）、10 个被动、7 种敌人 + 5 种精英词缀、
+  3 个 Boss（半血二阶段）、经验升级三选一、7 种拾取物。
 - 进化：武器满级且配套被动满级后，开宝箱即进化（如「回旋刃 + 大弹弓」→ 千刃轮）。
 - 局外记录：`BattleRecords` 存在 `battle.meta.*.v1`（累计金币 / 出战 / 胜利 / 最高击杀 / 最长存活），
   首页会显示这行小结。
@@ -170,10 +199,11 @@ camelCase JSON、401 自动清 token、超时 15s、失败抛 `GameApiException(
 - 雷电特效：雷电法典（`Kind=5 Chain`）命中时用 `LightningFx.Bolt()` 画抖动电弧
   （`LineRenderer` + 两端光斑，0.15s 淡出），先连玩家→首个敌人，再在敌人之间串联，越靠后越暗；
   天罚法典复用同一套。要调粗细/抖动幅度改 `Assets/App/Battle/LightningFx.cs` 的两个 clamp。
-- 随身炮台：`Weapons.json` 里 `Mount = 1` 的武器（魔法炮 / 湮灭炮）会在玩家侧边生成一门炮台
-  （`CannonRig`），自动转向最近的敌人（临界阻尼转向，`AngleSmoothTime` / `MaxTurnSpeed` 调手感），
-  冷却期间炮口光球由小变大、外圈能量环向炮口收缩，炮口对准之后才开火（后座 + 炮口闪光），
-  弹体从炮口而不是玩家中心射出。细节见 战斗系统.md 的「2.5 随身炮台」。
+- 随身炮台：`Weapons.json` 里 `Mount = 1` 的武器（魔法炮 / 湮灭炮）会在玩家侧边生成一门炮台。
+  **位姿（侧边偏移、朝向、炮口、蓄能）全部由逻辑层 `CannonMount` 算**，`CannonRig` 只按
+  `ICannonView.SetPose(bodyPosition, direction)` 摆外观（后座、蓄能光球、能量环都是纯视觉）。
+  炮口对准（≤14°）才开火、超 0.6 秒兜底开火，弹体从逻辑算出的炮口位置出生。
+  细节见 战斗系统.md 的「2.5 随身炮台」。
 - 拾取物：`Pickups.json` 每行是「一串效果原语」（`exp/gold/heal/freeze/explode/pullAll/chest/toast` + 参数），
   `PickupUnit` 只管精灵/尺寸/寿命/吸附。加一种掉落只改 JSON；加一种新效果实现 `IPickupEffect`
   并在 `PickupEffects.CreateDefault()` 注册一行。细节见 战斗系统.md 的「2.9 拾取物」。
@@ -241,18 +271,43 @@ $proj  = "E:\Work\Roguelike\Client"
 & $unity -batchmode -quit -projectPath $proj `
   -executeMethod App.EditorTools.FrameworkSelfCheck.Run -logFile "$proj\Logs\selfcheck.log"
 
-# 3. Play 模式冒烟：启动 → 配置表 → Toast → 对话框，退出码 0 = PASS
+# 3. 纯逻辑断言：配表目录、状态机、刷怪曲线、随机流、三选一（退出码 0 = PASS）
+& $unity -batchmode -quit -projectPath $proj `
+  -executeMethod App.EditorTools.BattleChecks.Run -logFile "$proj\Logs\battle-checks.log"
+
+# 4. Play 模式冒烟：启动 → 配置表 → Toast → 对话框，退出码 0 = PASS
 & $unity -batchmode -projectPath $proj `
   -executeMethod App.EditorTools.RuntimeSmokeTest.Run -logFile "$proj\Logs\smoke.log"
 
-# 4. Play 模式战斗冒烟：自动打 40 秒，校验刷怪/击杀/升级，退出码 0 = PASS
+# 5. Play 模式战斗冒烟：自动打一局（默认 40 秒 / 4 倍速），校验刷怪/击杀/升级/视图同步
 & $unity -batchmode -projectPath $proj `
   -executeMethod App.EditorTools.BattleSmokeTest.Run -logFile "$proj\Logs\battle-smoke.log"
+
+# 6. 完整一局基线（300 秒 / 20 倍速 / 固定步长 / 不死）：结果应与上次逐位一致
+& $unity -batchmode -projectPath $proj `
+  -executeMethod App.EditorTools.BattleSmokeTest.Run -logFile "$proj\Logs\battle-300.log" `
+  -battleSeconds 300 -battleSpeed 20 -battleImmortal 1 -battleSeed 987654 -battleFixedStep 1
 ```
 
+`BattleSmokeTest` 支持的命令行参数：
+
+| 参数 | 作用 |
+|---|---|
+| `-battleSeconds N` | 打多少秒（默认 40） |
+| `-battleSpeed X` | 模拟倍速（默认 4） |
+| `-battleImmortal 1` | 玩家不死，用于跑完整 5 分钟链路 |
+| `-battleSeed N` | 随机种子；配合固定步长可复现 |
+| `-battleFixedStep 1` | 固定 1/60 步长，不与渲染帧率耦合 |
+| `-battleCharacter N` | 临时改存档里的角色选择（1 游侠 / 2 剑士） |
+| `-battleAlloc 1` | 打开分配探针，结束打 `[Alloc]`（帧尾/战斗段字节与各区段 GC 次数） |
+| `-battleIdle N` | 不进战斗、空转 N 秒，量编辑器自身 GC 基线（打 `[IdleGC]`） |
+| `-battleUiEvery N` | 每隔 N 帧轮询一次升级弹窗（默认 10，调小可压 GC） |
+
 冒烟测试用 `SessionState` 跨 domain reload 保存状态，日志出现 `[RuntimeSmokeTest] PASS` 后自行退出；
-不要给它加 `-quit`（Play 期间 `-quit` 不等退出流程走完）。
-批处理过程若异常卡住，检查并删除 `Temp/UnityLockfile`。
+**不要给 Play 模式冒烟加 `-quit`**（`-quit` 在 executeMethod 返回后立刻退出，会得到 `Curl error 42`）；
+纯编辑器方法（`FrameworkSelfCheck` / `BattleChecks` / 两个 `RebuildAll`）才加 `-quit`。
+批处理过程若异常卡住，检查并删除 `Temp/UnityLockfile`；同一工程同时只允许一个 Unity 实例，编辑器开着时批处理会直接失败。
+`-nographics` 可以跑完整战斗（模拟层不渲染），日志里的 `GfxDevice renderer is null` 属正常提示。
 
 ## 10. 交接清单
 
@@ -261,7 +316,9 @@ $proj  = "E:\Work\Roguelike\Client"
   `App/Config/DemoConfig.cs`（以及 `ConfigTables` 里的对应一行）、`App/UI/AppScreenIds.cs` 里的 `Home`。
 - 战斗骨架不想要时，可整体删除：`Assets/App/Battle`、`Assets/App/UI/Battle`、
   `Assets/Res/UI/Battle`、`Assets/Res/Config/Battle`、`Assets/Res/Battle`（2D 精灵与预制体）、
-  `Assets/App/Editor/BattleSmokeTest.cs`、`Assets/App/Editor/BattleSpriteBuilder.cs`，
+  `Assets/App/Editor/BattleSmokeTest.cs`、`Assets/App/Editor/BattleSpriteBuilder.cs`、
+  `Assets/App/Editor/BattleChecks.cs`、`Assets/App/Editor/BossPhaseCheck.cs`、`Docs/战斗类图.md`、
+  `Assets/App/Battle/战斗系统.md`，
   并去掉 `AppBootstrap` 里的 `BattleLauncher` 注册、`HomeViewModel/HomeView` 的 `StartBattleCommand`、
   `AppScreenIds` 里的三个战斗界面 id、`ResResourcePaths` 里的战斗 key、`ConfigTables` 里的战斗表加载。
 - 若要换成别的字体，重新生成 `Assets/Res/Fonts/DemoFont SDF.asset` 并同步 TMP 默认字体即可。
