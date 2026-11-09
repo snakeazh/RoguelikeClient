@@ -85,18 +85,29 @@ namespace App.Battle
         public void Tick(float deltaTime, in SimulationWorld world, ISimulationStep weapons)
         {
             // 顺序与拆分前一致，别随意调整：它会改变随机流与手感。
+            var alloc = BattleAllocProbe.Begin();
             _playerSim.Tick(Player, Session, world.Input, deltaTime, world.Walkable);
             Session.TickTime(deltaTime);
+            BattleAllocProbe.End("player", alloc);
 
             // 刷怪用整场上下文（波次要能刷怪/刷 Boss/掉补给/报警），敌人规则只读敌人上下文。
+            alloc = BattleAllocProbe.Begin();
             Spawner.Tick(deltaTime, Session.Elapsed, world.Battle);
+            BattleAllocProbe.End("spawn", alloc);
+
+            alloc = BattleAllocProbe.Begin();
             _enemySystem.Tick(deltaTime, world.Enemies, _enemies, world.Frozen);
             _contactSystem.Tick(deltaTime, world.Enemies, _enemies);
+            BattleAllocProbe.End("enemy+contact", alloc);
 
+            alloc = BattleAllocProbe.Begin();
             weapons.Tick(deltaTime);
+            BattleAllocProbe.End("weapons", alloc);
 
+            alloc = BattleAllocProbe.Begin();
             _projectiles.Tick(deltaTime, world.Battle);
             _pickups.Tick(deltaTime, Player.Position, true, world.MagnetRadius, world.Pickups);
+            BattleAllocProbe.End("projectile+pickup", alloc);
 
         }
 

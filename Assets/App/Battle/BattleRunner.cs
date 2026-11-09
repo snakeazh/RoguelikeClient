@@ -178,6 +178,12 @@ namespace App.Battle
             _autoInput = new AutoPlayerInput(this);
             _input = AutoPlay ? (IUnitInput)_autoInput : _playerInput;
 
+            // 分配归因探针打开时才需要帧尾标记，平时不加组件。
+            if (BattleAllocProbe.Enabled && GetComponent<BattleFrameTail>() == null)
+            {
+                gameObject.AddComponent<BattleFrameTail>();
+            }
+
             // 镜头跟着玩家，并且只在地图范围内移动。
             AttachCameraFollow(playerGo.transform);
 
@@ -257,15 +263,19 @@ namespace App.Battle
 
         private void Update()
         {
+            // 分配归因：帧首记录一次，帧尾再记一次，差值是「本帧 Update 内」的 GC，
+            // 其余落在两者之间，就是场景里别的 MonoBehaviour 与 Unity 自身的开销。
+            BattleAllocProbe.MarkFrameStart();
+
             // 黑边在任何阶段都要维持，否则窗口变化后暂停中也会露出画面外的部分。
             RefreshAspectGuard();
 
-            if (Phase != BattlePhase.Running)
+            if (Phase == BattlePhase.Running)
             {
-                return;
+                TickRunning();
             }
 
-            TickRunning();
+            BattleAllocProbe.MarkFrameEnd();
         }
 
         private void TickRunning()
@@ -289,10 +299,14 @@ namespace App.Battle
                 Session.Elapsed < _freezeUntil,
                 1.8f * Session.MagnetMultiplier);
 
+            var worldAlloc = BattleAllocProbe.Begin();
             _simulation.Tick(deltaTime, world, _weapons);
+            BattleAllocProbe.End("world+sim", worldAlloc);
 
             // 表现层：只把状态同步到 Transform / 精灵，不参与任何判定。
+            var viewAlloc = BattleAllocProbe.Begin();
             SyncBattleViews(deltaTime);
+            BattleAllocProbe.End("views", viewAlloc);
 
             if (Session.IsOver)
             {
@@ -312,7 +326,9 @@ namespace App.Battle
             if (_hudTimer <= 0f)
             {
                 _hudTimer = 0.1f;
+                var hudAlloc = BattleAllocProbe.Begin();
                 StateChanged?.Invoke();
+                BattleAllocProbe.End("hud", hudAlloc);
             }
         }
 

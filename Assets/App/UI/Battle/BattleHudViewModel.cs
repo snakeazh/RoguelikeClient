@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Threading.Tasks;
 using App.Battle;
 using Framework.UI.Core;
@@ -126,3 +126,4 @@ namespace App.UI.Battle
         }
     }
 }
+

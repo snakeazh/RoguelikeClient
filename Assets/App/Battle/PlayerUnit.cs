@@ -25,6 +25,9 @@ namespace App.Battle
         private Transform _body;
         private Transform _auraVisual;
         private float _flash;
+        private Color _appliedColor;
+        private bool _colorApplied;
+        private int _appliedOrder = int.MinValue;
 
         /// <summary>逻辑状态：只有 <see cref="PlayerSim"/> 写它，表现层只读。</summary>
         public PlayerState State { get; private set; }
@@ -139,13 +142,11 @@ namespace App.Battle
         /// <summary>纯表现：闪红、朝向 Slerp、冲刺半透明。</summary>
         private void SyncVisual(float deltaTime)
         {
+            var color = Color.white;
             if (_flash > 0f)
             {
                 _flash = Mathf.Max(0f, _flash - deltaTime / 0.22f);
-                if (_renderer != null)
-                {
-                    _renderer.color = Color.Lerp(Color.white, new Color(1f, 0.42f, 0.42f), _flash * 0.72f);
-                }
+                color = Color.Lerp(Color.white, new Color(1f, 0.42f, 0.42f), _flash * 0.72f);
             }
 
             if (_body != null)
@@ -155,13 +156,23 @@ namespace App.Battle
                 _body.rotation = Quaternion.Slerp(_body.rotation, target, Mathf.Clamp01(deltaTime * 18f));
             }
 
-            if (_renderer != null)
+            if (_renderer == null)
             {
-                // 冲刺时半透明，提示无敌帧
-                var color = _renderer.color;
-                color.a = State.IsDashing ? 0.5f : 1f;
-                _renderer.color = color;
+                return;
             }
+
+            // 冲刺时半透明，提示无敌帧
+            color.a = State.IsDashing ? 0.5f : 1f;
+
+            // 每帧写 SpriteRenderer.color 会让渲染器重新上传材质参数；值没变就不写。
+            if (_colorApplied && color == _appliedColor)
+            {
+                return;
+            }
+
+            _appliedColor = color;
+            _colorApplied = true;
+            _renderer.color = color;
         }
 
         /// <summary>
@@ -171,6 +182,12 @@ namespace App.Battle
         private void ApplySortOrder()
         {
             var order = BattleSort.Character(transform.position.y, GetInstanceID());
+            if (order == _appliedOrder)
+            {
+                return;
+            }
+
+            _appliedOrder = order;
 
             if (_renderer != null)
             {

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Framework.Assets;
@@ -103,6 +103,8 @@ namespace Framework.UI.Navigation
             await Close(FindTopMostLayerWithScreens());
         }
 
+        private static readonly UILayer[] AllLayers = (UILayer[])Enum.GetValues(typeof(UILayer));
+
         public bool HasScreen(UILayer layer)
         {
             return _stacks.TryGetValue(layer, out var stack) && stack.Count > 0;
@@ -110,7 +112,8 @@ namespace Framework.UI.Navigation
 
         public T FindOpen<T>() where T : ViewModelBase
         {
-            foreach (UILayer layer in Enum.GetValues(typeof(UILayer)))
+            // 层枚举数组只取一次：FindOpen 会被 UI 流程高频调用，每帧 new 一个枚举数组纯属浪费。
+            foreach (UILayer layer in AllLayers)
             {
                 foreach (var instance in _stacks[layer])
                 {
@@ -337,3 +340,4 @@ namespace Framework.UI.Navigation
         }
     }
 }
+

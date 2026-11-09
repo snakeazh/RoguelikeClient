@@ -20,6 +20,11 @@ namespace App.Battle
         private Vector3 _bodyScale = Vector3.one;
         private Color _bodyColor = Color.white;
         private bool _fuseTinted;
+        private Color _appliedColor;
+        private bool _colorApplied;
+        private Vector3 _appliedScale;
+        private bool _scaleApplied;
+        private int _appliedOrder = int.MinValue;
 
         /// <summary>纯逻辑状态（P3-1）：数值、计时器、位置都在这里，单位只负责表现与代理。</summary>
         public EnemyState State { get; private set; }
@@ -96,6 +101,13 @@ namespace App.Battle
         private void ApplySortOrder()
         {
             var order = BattleSort.Character(transform.position.y, GetInstanceID());
+            if (order == _appliedOrder)
+            {
+                return;
+            }
+
+            _appliedOrder = order;
+
             if (_body != null)
             {
                 _body.sortingOrder = order;
@@ -225,10 +237,22 @@ namespace App.Battle
                 _flash = Mathf.Max(0f, _flash - deltaTime / 0.09f);
             }
 
-            _body.color = Color.Lerp(_bodyColor, Color.white, _flash * 0.9f);
+            // 每帧写 SpriteRenderer.color / localScale 都会让渲染器重新上传参数；值没变就不写。
+            var color = Color.Lerp(_bodyColor, Color.white, _flash * 0.9f);
+            if (!_colorApplied || color != _appliedColor)
+            {
+                _appliedColor = color;
+                _colorApplied = true;
+                _body.color = color;
+            }
 
             // 受击瞬间鼓一下再弹回，比单纯变色更容易被看见
-            _body.transform.localScale = _bodyScale * (1f + _flash * 0.14f);
+            var scale = _bodyScale * (1f + _flash * 0.14f);
+            if (scale != _appliedScale)
+            {
+                _appliedScale = scale;
+                _body.transform.localScale = scale;
+            }
         }
 
         /// <summary>移除自身（掉落与计数由 BattleRunner 结算）。</summary>

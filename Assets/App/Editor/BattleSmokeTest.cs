@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Text;
 using System.Threading.Tasks;
 using App.Battle;
@@ -35,6 +35,9 @@ namespace App.EditorTools
         private const string SummaryKey = "BattleSmoke.Summary";
         private const string SeedKey = "BattleSmoke.Seed";
         private const string FixedStepKey = "BattleSmoke.FixedStep";
+        private const string AllocKey = "BattleSmoke.Alloc";
+        private const string IdleKey = "BattleSmoke.Idle";
+        private const string UiEveryKey = "BattleSmoke.UiEvery";
         private const string PerfFrameKey = "BattleSmoke.PerfFrame";
         private const string PerfGcKey = "BattleSmoke.PerfGc";
         private const string PerfTimeKey = "BattleSmoke.PerfTime";
@@ -44,6 +47,9 @@ namespace App.EditorTools
         private const string ScenePath = "Assets/Scenes/Main.unity";
         private const float DefaultTargetSeconds = 40f;
         private const float DefaultSpeed = 4f;
+
+        /// <summary>升级弹窗轮询间隔（帧）。每帧 FindOpen 会白烧 GC，10 帧足够及时。</summary>
+        private const int DefaultUiPollEvery = 10;
 
         static BattleSmokeTest()
         {
@@ -80,6 +86,8 @@ namespace App.EditorTools
             var characterId = ReadArg("-battleCharacter", 0f);
             var seed = ReadArg("-battleSeed", 0f);
             var fixedStep = ReadArg("-battleFixedStep", 0f) > 0f;
+            var allocProbe = ReadArg("-battleAlloc", 0f) > 0f;
+            var idleSeconds = ReadArg("-battleIdle", 0f);
 
             SessionState.SetBool(ActiveKey, true);
             SessionState.SetBool(ImmortalKey, immortal);
@@ -90,6 +98,9 @@ namespace App.EditorTools
             SessionState.SetInt(CharacterKey, (int)characterId);
             SessionState.SetInt(SeedKey, (int)seed);
             SessionState.SetBool(FixedStepKey, fixedStep);
+            SessionState.SetBool(AllocKey, allocProbe);
+            SessionState.SetFloat(IdleKey, idleSeconds);
+            SessionState.SetInt(UiEveryKey, Mathf.Max(1, (int)ReadArg("-battleUiEvery", DefaultUiPollEvery)));
             // 加速越大，真实等待越短；留出启动与升级弹窗的余量。
             var timeout = 60f + target / Mathf.Max(1f, speed) * 3f;
             SessionState.SetFloat(DeadlineKey, (float)EditorApplication.timeSinceStartup + timeout);
@@ -145,6 +156,33 @@ namespace App.EditorTools
             }
 
             var phase = SessionState.GetInt(PhaseKey, 0);
+
+            // -battleIdle N：不进战斗、只空转 N 秒，用来量「编辑器自身」的 GC 基线。
+            if (phase == 0 && SessionState.GetFloat(IdleKey, 0f) > 0f)
+            {
+                if (!AppServices.IsReady)
+                {
+                    return;
+                }
+
+                SessionState.SetInt(PerfFrameKey, Time.frameCount);
+                SessionState.SetInt(PerfGcKey, GC.CollectionCount(0));
+                SessionState.SetFloat(PerfTimeKey, Time.realtimeSinceStartup);
+                if (SessionState.GetBool(AllocKey, false))
+                {
+                    BattleAllocProbe.Enable();
+                }
+
+                SessionState.SetInt(PhaseKey, 2);
+                return;
+            }
+
+            if (phase == 2)
+            {
+                TrackIdle(SessionState.GetFloat(IdleKey, 0f));
+                return;
+            }
+
             if (phase == 0)
             {
                 if (AppServices.IsReady)
@@ -157,6 +195,27 @@ namespace App.EditorTools
             }
 
             TrackBattle();
+        }
+
+        private static void TrackIdle(float seconds)
+        {
+            var wall = Time.realtimeSinceStartup - SessionState.GetFloat(PerfTimeKey, 0f);
+            if (wall < seconds)
+            {
+                return;
+            }
+
+            var frames = Time.frameCount - SessionState.GetInt(PerfFrameKey, 0);
+            var gc0 = GC.CollectionCount(0) - SessionState.GetInt(PerfGcKey, 0);
+            Debug.Log($"[IdleGC] frames={frames} gc0={gc0} wall={wall:0.0}s");
+            if (BattleAllocProbe.Enabled)
+            {
+                BattleAllocProbe.Dump(frames);
+            }
+
+
+            SessionState.SetBool(ActiveKey, false);
+            EditorApplication.Exit(0);
         }
 
         private static async Task StartBattleAsync()
@@ -176,6 +235,12 @@ namespace App.EditorTools
                 launcher.NextSeed = SessionState.GetInt(SeedKey, 0);
                 launcher.NextFixedStep = SessionState.GetBool(FixedStepKey, false) ? 1f / 60f : 0f;
                 launcher.NextSimulationSpeed = SessionState.GetFloat(SpeedKey, DefaultSpeed);
+#if UNITY_EDITOR || ENABLE_APP_LOG
+                if (SessionState.GetBool(AllocKey, false))
+                {
+                    BattleAllocProbe.Enable();
+                }
+#endif
                 SessionState.SetInt(PerfFrameKey, Time.frameCount);
                 SessionState.SetInt(PerfGcKey, GC.CollectionCount(0));
                 SessionState.SetFloat(PerfTimeKey, Time.realtimeSinceStartup);
@@ -238,7 +303,9 @@ namespace App.EditorTools
 
             // 升级弹窗会暂停战斗，冒烟测试里轮流选三张卡（避免永远只点第一张、Build 长不全）。
             var ui = AppServices.Resolve<IUIManager>();
-            var levelUp = ui.FindOpen<LevelUpViewModel>();
+            var every = SessionState.GetInt(UiEveryKey, DefaultUiPollEvery);
+            var pollUi = Time.frameCount % every == 0;
+            var levelUp = pollUi ? ui.FindOpen<LevelUpViewModel>() : null;
             if (levelUp != null)
             {
                 switch (level % 3)
@@ -336,6 +403,11 @@ namespace App.EditorTools
         {
             Debug.Log(message);
             LogPerformance();
+#if UNITY_EDITOR || ENABLE_APP_LOG
+            BattleAllocProbe.Dump(SessionState.GetInt(PerfFrameKey, 0) > 0
+                ? Time.frameCount - SessionState.GetInt(PerfFrameKey, 0)
+                : 0);
+#endif
             Finish(0);
         }
 
@@ -373,3 +445,9 @@ namespace App.EditorTools
         }
     }
 }
+
+
+
+
+
+
