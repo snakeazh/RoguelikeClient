@@ -72,7 +72,7 @@ namespace App.Battle
 
         public ICannonView CreateCannon()
         {
-            return _player != null ? new CannonView(CannonRig.Create(_player.transform)) : new CannonView(null);
+            return new CannonView(CannonRig.Create(_root));
         }
 
         public void Flash(Vector2 position, float diameter, Color color, float life)

@@ -50,10 +50,14 @@ namespace App.Battle
             }
         }
 
-        public static CannonRig Create(Transform player)
+        /// <summary>
+        /// 挂到战斗根节点（不是玩家身上）：位姿由逻辑层每帧写入世界坐标，
+        /// 挂在会移动的父节点下会让实际渲染位置多叠一层父级位移。
+        /// </summary>
+        public static CannonRig Create(Transform parent)
         {
             var go = new GameObject("CannonRig");
-            go.transform.SetParent(player, false);
+            go.transform.SetParent(parent, false);
 
             var rig = go.AddComponent<CannonRig>();
             rig.Build();
